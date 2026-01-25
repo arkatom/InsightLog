@@ -1,10 +1,11 @@
 import { useState, useRef } from 'react';
-import { Upload, Trash2, FileText, FileJson, FileSpreadsheet } from 'lucide-react';
+import { Upload, Trash2, FileText, FileJson, FileSpreadsheet, Download } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { useSettings } from '@/hooks/useSettings';
 import { useStatistics } from '@/hooks/useStatistics';
+import { useInstallPrompt } from '@/hooks/useInstallPrompt';
 import {
   downloadJSON,
   downloadCSV,
@@ -22,10 +23,18 @@ interface SettingsModalProps {
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const { settings, updateSettings } = useSettings();
   const stats = useStatistics('all');
+  const { canInstall, isInstalled, promptInstall } = useInstallPrompt();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [timerSettings, setTimerSettings] = useState(settings.timer);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const handleInstall = async () => {
+    const installed = await promptInstall();
+    if (installed) {
+      toast.success('InsightLogをインストールしました');
+    }
+  };
 
   const handleSaveSettings = () => {
     updateSettings({ timer: timerSettings });
@@ -104,6 +113,30 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="設定">
       <div className="space-y-6">
+        {/* PWAインストール */}
+        {canInstall && (
+          <section className="bg-accent-50 rounded-lg p-4">
+            <h3 className="text-sm font-medium text-accent-700 mb-2">アプリのインストール</h3>
+            <p className="text-xs text-accent-600 mb-3">
+              ホーム画面に追加して、アプリのように使用できます
+            </p>
+            <Button
+              onClick={handleInstall}
+              variant="primary"
+              size="sm"
+              className="w-full flex items-center justify-center gap-1"
+            >
+              <Download size={14} />
+              インストール
+            </Button>
+          </section>
+        )}
+
+        {isInstalled && (
+          <section className="bg-success-50 rounded-lg p-4">
+            <p className="text-sm text-success-700">✓ InsightLogはインストール済みです</p>
+          </section>
+        )}
         {/* タイマー設定 */}
         <section>
           <h3 className="text-sm font-medium text-primary-700 mb-3">タイマー設定</h3>
