@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Upload, Trash2, FileText, FileJson, FileSpreadsheet, Download } from 'lucide-react';
+import { Upload, Trash2, FileText, FileJson, FileSpreadsheet, Download, Volume2, Bell } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
@@ -13,6 +13,8 @@ import {
   importDataFromJSON,
   deleteAllData,
 } from '@/lib/export';
+import { audioNotification } from '@/lib/audio';
+import { requestNotificationPermission, showNotification, vibrate } from '@/lib/notification';
 import { toast } from 'sonner';
 
 interface SettingsModalProps {
@@ -27,6 +29,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [timerSettings, setTimerSettings] = useState(settings.timer);
+  const [notificationSettings, setNotificationSettings] = useState(settings.notification);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const handleInstall = async () => {
@@ -37,8 +40,27 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   };
 
   const handleSaveSettings = () => {
-    updateSettings({ timer: timerSettings });
+    updateSettings({ timer: timerSettings, notification: notificationSettings });
     toast.success('設定を保存しました');
+  };
+
+  const handleTestSound = () => {
+    audioNotification.playTimerEndSound(notificationSettings.soundVolume);
+  };
+
+  const handleTestNotification = async () => {
+    const granted = await requestNotificationPermission();
+    if (granted) {
+      showNotification('テスト通知', 'これはテスト通知です');
+      toast.success('通知を送信しました');
+    } else {
+      toast.error('通知が許可されていません');
+    }
+  };
+
+  const handleTestVibration = () => {
+    vibrate([200, 100, 200]);
+    toast.success('バイブレーションをテストしました');
   };
 
   const handleExportJSON = async () => {
@@ -220,6 +242,127 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             <Button onClick={handleSaveSettings} size="sm" className="w-full">
               設定を保存
             </Button>
+          </div>
+        </section>
+
+        {/* 通知設定 */}
+        <section>
+          <h3 className="text-sm font-medium text-primary-700 mb-3">通知設定</h3>
+          <div className="space-y-3">
+            {/* 音声通知 */}
+            <div className="bg-primary-50 rounded-lg p-3">
+              <label className="flex items-center gap-2 cursor-pointer mb-2">
+                <input
+                  type="checkbox"
+                  checked={notificationSettings.soundEnabled}
+                  onChange={(e) =>
+                    setNotificationSettings({ ...notificationSettings, soundEnabled: e.target.checked })
+                  }
+                  className="w-4 h-4 rounded text-accent-500"
+                />
+                <Volume2 size={16} className="text-primary-500" />
+                <span className="text-sm text-primary-700">音声通知</span>
+              </label>
+
+              {notificationSettings.soundEnabled && (
+                <div className="ml-6 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs text-primary-500 w-12">音量</label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.1"
+                      value={notificationSettings.soundVolume}
+                      onChange={(e) =>
+                        setNotificationSettings({
+                          ...notificationSettings,
+                          soundVolume: Number(e.target.value),
+                        })
+                      }
+                      className="flex-1"
+                    />
+                    <span className="text-xs text-primary-500 w-8">
+                      {Math.round(notificationSettings.soundVolume * 100)}%
+                    </span>
+                  </div>
+                  <Button
+                    type="button"
+                    onClick={handleTestSound}
+                    variant="ghost"
+                    size="sm"
+                    className="w-full"
+                  >
+                    テスト
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* ブラウザ通知 */}
+            <div className="bg-primary-50 rounded-lg p-3">
+              <label className="flex items-center gap-2 cursor-pointer mb-2">
+                <input
+                  type="checkbox"
+                  checked={notificationSettings.browserNotificationEnabled}
+                  onChange={(e) =>
+                    setNotificationSettings({
+                      ...notificationSettings,
+                      browserNotificationEnabled: e.target.checked,
+                    })
+                  }
+                  className="w-4 h-4 rounded text-accent-500"
+                />
+                <Bell size={16} className="text-primary-500" />
+                <span className="text-sm text-primary-700">ブラウザ通知</span>
+              </label>
+
+              {notificationSettings.browserNotificationEnabled && (
+                <div className="ml-6">
+                  <Button
+                    type="button"
+                    onClick={handleTestNotification}
+                    variant="ghost"
+                    size="sm"
+                    className="w-full"
+                  >
+                    テスト（許可をリクエスト）
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* バイブレーション */}
+            <div className="bg-primary-50 rounded-lg p-3">
+              <label className="flex items-center gap-2 cursor-pointer mb-2">
+                <input
+                  type="checkbox"
+                  checked={notificationSettings.vibrationEnabled}
+                  onChange={(e) =>
+                    setNotificationSettings({
+                      ...notificationSettings,
+                      vibrationEnabled: e.target.checked,
+                    })
+                  }
+                  className="w-4 h-4 rounded text-accent-500"
+                />
+                <span className="text-sm text-primary-700">バイブレーション（モバイル）</span>
+              </label>
+
+              {notificationSettings.vibrationEnabled && (
+                <div className="ml-6">
+                  <Button
+                    type="button"
+                    onClick={handleTestVibration}
+                    variant="ghost"
+                    size="sm"
+                    className="w-full"
+                  >
+                    テスト
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
         </section>
 

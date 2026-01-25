@@ -3,6 +3,8 @@ import { useTimerStore } from '@/store/timerStore';
 import { useSettings } from './useSettings';
 import { useSessions } from './useSessions';
 import type { SessionType } from '@/types/session';
+import { audioNotification } from '@/lib/audio';
+import { notifyTimerEnd, vibrate } from '@/lib/notification';
 
 /**
  * タイマーのロジックを提供するカスタムフック
@@ -87,6 +89,19 @@ export function useTimer() {
         interrupted: false,
       });
       sessionIdRef.current = null;
+    }
+
+    // 通知を送信
+    if (settings.notification.soundEnabled) {
+      audioNotification.playTimerEndSound(settings.notification.soundVolume);
+    }
+
+    if (settings.notification.browserNotificationEnabled && mode === 'pomodoro') {
+      notifyTimerEnd(currentSessionType);
+    }
+
+    if (settings.notification.vibrationEnabled) {
+      vibrate([200, 100, 200]);
     }
 
     if (mode === 'pomodoro') {
