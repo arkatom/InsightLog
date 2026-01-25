@@ -18,6 +18,7 @@ export interface AppSettings {
   id?: string;                   // IndexedDB用のID（通常は'app-settings'固定）
   timer: TimerSettings;
   notification: NotificationSettings;
+  customCategories: string[];    // ユーザー定義カテゴリ
   onboardingCompleted: boolean;  // オンボーディング完了フラグ
   lastBackupDate: Date | null;   // 最終バックアップ日
 }
@@ -37,6 +38,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
     browserNotificationEnabled: false,
     vibrationEnabled: false
   },
+  customCategories: [],
   onboardingCompleted: false,
   lastBackupDate: null
 };

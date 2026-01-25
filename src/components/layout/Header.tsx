@@ -8,7 +8,7 @@ interface HeaderProps {
 export function Header({ onTaskListClick, onStatsClick }: HeaderProps) {
   return (
     <div className="flex justify-between items-center mb-4">
-      <h1 className="text-xl font-bold text-primary-800">ポモドーロタイマー</h1>
+      <h1 className="text-xl font-bold text-primary-800">InsightLog タイマー</h1>
       <div className="flex gap-2">
         <button
           onClick={onTaskListClick}

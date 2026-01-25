@@ -3,6 +3,8 @@ export const TASK_CATEGORIES = [
   '設計',
   'デザイン',
   'レビュー',
+  '調査',
+  'ドキュメント',
   'MTG',
   'その他'
 ] as const;

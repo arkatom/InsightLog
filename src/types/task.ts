@@ -1,6 +1,7 @@
 export interface Task {
   id: string;                    // UUID
   name: string;                  // タスク名
+  taskUrl?: string;              // タスクURL（GitHub Issue, Jiraなど）
   category: string[];            // カテゴリ（複数選択可能）
   aiUsed: boolean;               // AI利用フラグ
   duration: number;              // 所要時間（分）
