@@ -9,6 +9,7 @@ import { TimerControls } from '@/components/timer/TimerControls';
 import { TaskForm } from '@/components/task/TaskForm';
 import { TaskList } from '@/components/task/TaskList';
 import { StatsModal } from '@/components/statistics/StatsModal';
+import { SettingsModal } from '@/components/settings/SettingsModal';
 import { useTimer } from '@/hooks/useTimer';
 import { useStatistics } from '@/hooks/useStatistics';
 import { formatMinutes } from '@/lib/time';
@@ -16,6 +17,7 @@ import { formatMinutes } from '@/lib/time';
 export function HomePage() {
   const [showTaskList, setShowTaskList] = useState(false);
   const [showStats, setShowStats] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const { currentCycle } = useTimer();
   const stats = useStatistics('today');
 
@@ -24,6 +26,7 @@ export function HomePage() {
       <Header
         onTaskListClick={() => setShowTaskList(true)}
         onStatsClick={() => setShowStats(true)}
+        onSettingsClick={() => setShowSettings(true)}
       />
 
       <ModeSelector />
@@ -61,6 +64,9 @@ export function HomePage() {
 
       {/* 統計モーダル */}
       <StatsModal isOpen={showStats} onClose={() => setShowStats(false)} />
+
+      {/* 設定モーダル */}
+      <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} />
     </Container>
   );
 }
