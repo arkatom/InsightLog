@@ -1,8 +1,8 @@
-import { Play, Pause, RotateCcw, Coffee } from 'lucide-react';
+import { Play, Pause, RotateCcw, Square } from 'lucide-react';
 import { useTimer } from '@/hooks/useTimer';
 
 export function TimerControls() {
-  const { isRunning, isPaused, startTimer, pauseTimer, resumeTimer, resetTimer } = useTimer();
+  const { isRunning, isPaused, mode, startTimer, pauseTimer, resumeTimer, resetTimer } = useTimer();
 
   const handlePlayPause = () => {
     if (isRunning) {
@@ -14,15 +14,23 @@ export function TimerControls() {
     }
   };
 
+  const handleStop = () => {
+    // 停止 = リセット（セッションを中断として記録）
+    resetTimer();
+  };
+
   return (
-    <div className="flex justify-center gap-4">
-      {/* リセットボタン */}
-      <button
-        onClick={resetTimer}
-        className="p-3 bg-primary-100 rounded-full hover:bg-primary-200 transition-colors"
-      >
-        <RotateCcw size={24} className="text-primary-600" />
-      </button>
+    <div className="flex justify-center gap-3">
+      {/* リセットボタン（ポモドーロのみ、セッション中断なし） */}
+      {mode === 'pomodoro' && !isRunning && !isPaused && (
+        <button
+          onClick={resetTimer}
+          className="p-3 bg-primary-100 rounded-full hover:bg-primary-200 transition-colors"
+          title="リセット"
+        >
+          <RotateCcw size={20} className="text-primary-600" />
+        </button>
+      )}
 
       {/* スタート/一時停止ボタン */}
       <button
@@ -37,17 +45,21 @@ export function TimerControls() {
         ) : (
           <>
             <Play size={24} className="text-white" />
-            <span className="text-white font-medium">
-              {isPaused ? '再開' : 'スタート'}
-            </span>
+            <span className="text-white font-medium">{isPaused ? '再開' : 'スタート'}</span>
           </>
         )}
       </button>
 
-      {/* 休憩スキップボタン（将来の拡張用、現在は装飾） */}
-      <button className="p-3 bg-primary-100 rounded-full hover:bg-primary-200 transition-colors">
-        <Coffee size={24} className="text-primary-600" />
-      </button>
+      {/* 停止ボタン（実行中または一時停止中） */}
+      {(isRunning || isPaused) && (
+        <button
+          onClick={handleStop}
+          className="p-3 bg-warning-100 rounded-full hover:bg-warning-200 transition-colors"
+          title="停止（セッションを中断）"
+        >
+          <Square size={20} className="text-warning-600" />
+        </button>
+      )}
     </div>
   );
 }

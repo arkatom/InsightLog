@@ -46,8 +46,6 @@ export const useTimerStore = create<TimerState>((set, get) => ({
     // モード変更時にタイマーをリセット
     if (mode === 'pomodoro') {
       set({ remainingSeconds: 25 * 60, currentSessionType: 'work', currentCycle: 1 });
-    } else if (mode === 'free') {
-      set({ remainingSeconds: 25 * 60 });
     } else if (mode === 'stopwatch') {
       set({ remainingSeconds: 0 });
     }
@@ -76,8 +74,6 @@ export const useTimerStore = create<TimerState>((set, get) => ({
     if (mode === 'pomodoro') {
       const duration = currentSessionType === 'work' ? 25 * 60 : 5 * 60;
       set({ remainingSeconds: duration });
-    } else if (mode === 'free') {
-      set({ remainingSeconds: 25 * 60 });
     } else if (mode === 'stopwatch') {
       set({ remainingSeconds: 0 });
     }
