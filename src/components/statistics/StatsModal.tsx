@@ -1,0 +1,68 @@
+import { useState } from 'react';
+import { Modal } from '@/components/ui/Modal';
+import { StatsSummary } from './StatsSummary';
+import { ComparisonChart } from './ComparisonChart';
+import { CategoryChart } from './CategoryChart';
+import { TimelineChart } from './TimelineChart';
+import { useStatistics } from '@/hooks/useStatistics';
+import type { DateRange } from '@/types/statistics';
+
+interface StatsModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export function StatsModal({ isOpen, onClose }: StatsModalProps) {
+  const [dateRange, setDateRange] = useState<DateRange>('today');
+  const stats = useStatistics(dateRange);
+
+  const dateRanges: { value: DateRange; label: string }[] = [
+    { value: 'today', label: '今日' },
+    { value: 'week', label: '今週' },
+    { value: 'month', label: '今月' },
+    { value: 'all', label: '全期間' },
+  ];
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="統計・分析">
+      <div className="space-y-4">
+        {/* 期間選択 */}
+        <div className="flex gap-2">
+          {dateRanges.map(({ value, label }) => (
+            <button
+              key={value}
+              onClick={() => setDateRange(value)}
+              className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                dateRange === value
+                  ? 'bg-primary-800 text-white'
+                  : 'bg-primary-100 text-primary-600 hover:bg-primary-200'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* 統計サマリー */}
+        <StatsSummary stats={stats} />
+
+        {/* AI比較グラフ */}
+        {stats.basic.totalTasks > 0 && <ComparisonChart data={stats.aiComparison} />}
+
+        {/* カテゴリ別グラフ */}
+        {stats.categories.length > 0 && <CategoryChart data={stats.categories} />}
+
+        {/* 時系列グラフ */}
+        {stats.daily.length > 0 && dateRange !== 'all' && <TimelineChart data={stats.daily} />}
+
+        {/* データなしメッセージ */}
+        {stats.basic.totalTasks === 0 && (
+          <div className="text-center py-12 text-primary-400">
+            <p>この期間にはタスクが記録されていません</p>
+            <p className="text-xs mt-2">タスクを記録すると、統計が表示されます</p>
+          </div>
+        )}
+      </div>
+    </Modal>
+  );
+}
