@@ -21,7 +21,6 @@ export function useTimer() {
     pause,
     resume,
     reset,
-    tick,
     setRemainingSeconds,
     setCurrentSessionType,
     setCurrentCycle,
@@ -30,7 +29,6 @@ export function useTimer() {
   const { settings } = useSettings();
   const { addSession, updateSession } = useSessions();
 
-  const intervalRef = useRef<number | null>(null);
   const sessionIdRef = useRef<string | null>(null);
   const startTimeRef = useRef<number | null>(null);
 
@@ -146,26 +144,7 @@ export function useTimer() {
     startTimer,
   ]);
 
-  // タイマーのtick処理
-  useEffect(() => {
-    if (isRunning) {
-      const interval = window.setInterval(() => {
-        tick();
-      }, 1000);
-      intervalRef.current = interval;
-
-      return () => {
-        clearInterval(interval);
-      };
-    } else {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    }
-  }, [isRunning, tick]);
-
-  // タイマー終了の検知
+  // タイマー終了の検知（tick処理はApp.tsxで一元管理）
   useEffect(() => {
     if (mode !== 'stopwatch' && remainingSeconds === 0 && isRunning) {
       handleTimerComplete();
