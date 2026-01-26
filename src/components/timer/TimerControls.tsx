@@ -15,22 +15,28 @@ export function TimerControls() {
   };
 
   const handleStop = () => {
-    // 停止 = リセット（セッションを中断として記録）
     resetTimer();
   };
 
+  // ボタンの表示状態
+  const showReset = mode === 'pomodoro' && !isRunning && !isPaused;
+  const showStop = isRunning || isPaused;
+
   return (
     <div className="flex justify-center gap-3">
-      {/* リセットボタン（ポモドーロのみ、セッション中断なし） */}
-      {mode === 'pomodoro' && !isRunning && !isPaused && (
-        <button
-          onClick={resetTimer}
-          className="p-3 bg-primary-100 rounded-full hover:bg-primary-200 transition-colors"
-          title="リセット"
-        >
-          <RotateCcw size={20} className="text-primary-600" />
-        </button>
-      )}
+      {/* リセットボタン */}
+      <button
+        onClick={resetTimer}
+        disabled={!showReset}
+        className={`p-3 rounded-full transition-colors ${
+          showReset
+            ? 'bg-primary-100 hover:bg-primary-200'
+            : 'bg-primary-50 opacity-50 cursor-not-allowed'
+        }`}
+        title="リセット"
+      >
+        <RotateCcw size={20} className={showReset ? 'text-primary-600' : 'text-primary-300'} />
+      </button>
 
       {/* スタート/一時停止ボタン */}
       <button
@@ -50,16 +56,19 @@ export function TimerControls() {
         )}
       </button>
 
-      {/* 停止ボタン（実行中または一時停止中） */}
-      {(isRunning || isPaused) && (
-        <button
-          onClick={handleStop}
-          className="p-3 bg-warning-100 rounded-full hover:bg-warning-200 transition-colors"
-          title="停止（セッションを中断）"
-        >
-          <Square size={20} className="text-warning-600" />
-        </button>
-      )}
+      {/* 停止ボタン */}
+      <button
+        onClick={handleStop}
+        disabled={!showStop}
+        className={`p-3 rounded-full transition-colors ${
+          showStop
+            ? 'bg-warning-100 hover:bg-warning-200'
+            : 'bg-primary-50 opacity-50 cursor-not-allowed'
+        }`}
+        title="停止（セッションを中断）"
+      >
+        <Square size={20} className={showStop ? 'text-warning-600' : 'text-primary-300'} />
+      </button>
     </div>
   );
 }

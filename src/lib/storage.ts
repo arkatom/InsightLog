@@ -36,11 +36,16 @@ export function loadTimerState(): TimerStateStorage | null {
 
   try {
     const state: TimerStateStorage = JSON.parse(stored);
+    const elapsedSeconds = Math.floor((Date.now() - state.savedAt) / 1000);
+
+    // 保存から1時間以上経過している場合は無視（古すぎる）
+    if (elapsedSeconds > 3600) {
+      clearTimerState();
+      return null;
+    }
 
     // タイマーが実行中だった場合、経過時間を考慮
     if (state.isRunning || state.isPaused) {
-      const elapsedSeconds = Math.floor((Date.now() - state.savedAt) / 1000);
-
       // ストップウォッチの場合はカウントアップ
       if (state.mode === 'stopwatch') {
         state.remainingSeconds += elapsedSeconds;

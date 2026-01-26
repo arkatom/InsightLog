@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import type { TimerMode } from '@/constants/timer';
 import type { SessionType } from '@/types/session';
-import { loadTimerState } from '@/lib/storage';
 
 interface TimerState {
   // タイマーモード
@@ -28,17 +27,14 @@ interface TimerState {
   setCurrentCycle: (cycle: number) => void;
 }
 
-// localStorageから状態を復元
-const loadedState = loadTimerState();
-
 export const useTimerStore = create<TimerState>((set, get) => ({
-  // 初期状態（localStorageから復元、なければデフォルト）
-  mode: loadedState?.mode || 'pomodoro',
-  remainingSeconds: loadedState?.remainingSeconds || 25 * 60,
-  isRunning: loadedState?.isRunning || false,
-  isPaused: loadedState?.isPaused || false,
-  currentSessionType: loadedState?.currentSessionType || 'work',
-  currentCycle: loadedState?.currentCycle || 1,
+  // 初期状態
+  mode: 'pomodoro',
+  remainingSeconds: 25 * 60,
+  isRunning: false,
+  isPaused: false,
+  currentSessionType: 'work',
+  currentCycle: 1,
 
   // モード変更
   setMode: (mode) => {
