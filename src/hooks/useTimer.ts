@@ -149,21 +149,20 @@ export function useTimer() {
   // タイマーのtick処理
   useEffect(() => {
     if (isRunning) {
-      intervalRef.current = window.setInterval(() => {
+      const interval = window.setInterval(() => {
         tick();
       }, 1000);
+      intervalRef.current = interval;
+
+      return () => {
+        clearInterval(interval);
+      };
     } else {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
     }
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
   }, [isRunning, tick]);
 
   // タイマー終了の検知
