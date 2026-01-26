@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { Container } from '@/components/layout/Container';
 import { Header } from '@/components/layout/Header';
 import { ModeSelector } from '@/components/timer/ModeSelector';
@@ -8,11 +8,13 @@ import { TimerDisplay } from '@/components/timer/TimerDisplay';
 import { TimerControls } from '@/components/timer/TimerControls';
 import { TaskForm } from '@/components/task/TaskForm';
 import { TaskList } from '@/components/task/TaskList';
-import { StatsModal } from '@/components/statistics/StatsModal';
-import { SettingsModal } from '@/components/settings/SettingsModal';
 import { useTimer } from '@/hooks/useTimer';
 import { useStatistics } from '@/hooks/useStatistics';
 import { formatMinutes } from '@/lib/time';
+
+// 統計モーダルと設定モーダルを遅延ロード
+const StatsModal = lazy(() => import('@/components/statistics/StatsModal').then(m => ({ default: m.StatsModal })));
+const SettingsModal = lazy(() => import('@/components/settings/SettingsModal').then(m => ({ default: m.SettingsModal })));
 
 export function HomePage() {
   const [showTaskList, setShowTaskList] = useState(false);
@@ -62,11 +64,15 @@ export function HomePage() {
       {/* タスク一覧モーダル */}
       <TaskList isOpen={showTaskList} onClose={() => setShowTaskList(false)} />
 
-      {/* 統計モーダル */}
-      <StatsModal isOpen={showStats} onClose={() => setShowStats(false)} />
+      {/* 統計モーダル（遅延ロード） */}
+      <Suspense fallback={null}>
+        {showStats && <StatsModal isOpen={showStats} onClose={() => setShowStats(false)} />}
+      </Suspense>
 
-      {/* 設定モーダル */}
-      <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} />
+      {/* 設定モーダル（遅延ロード） */}
+      <Suspense fallback={null}>
+        {showSettings && <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} />}
+      </Suspense>
     </Container>
   );
 }
