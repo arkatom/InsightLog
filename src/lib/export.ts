@@ -4,6 +4,7 @@ import type { Task } from '@/types/task';
 import type { PomodoroSession } from '@/types/session';
 import type { AppSettings } from '@/types/settings';
 import type { Statistics } from '@/types/statistics';
+import { AI_NOT_USED } from '@/constants/aiTools';
 
 export interface ExportData {
   version: string;
@@ -268,6 +269,93 @@ export function downloadMarkdownSummary(
 ): void {
   const markdown = exportStatsSummaryAsMarkdown(stats);
   const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * タスクをKPIダッシュボード形式のCSVでエクスポート
+ */
+export async function exportDataAsKPICSV(): Promise<string> {
+  const tasks = await db.tasks.toArray();
+  const settings = await db.settings.toArray();
+  const memberId = settings[0]?.memberId || 'unknown';
+
+  // KPIダッシュボード形式のヘッダー
+  const headers = [
+    'log_id',
+    'timestamp',
+    'date',
+    'member_id',
+    'task_name',
+    'ai_used',
+    'time_minutes',
+    'project_id',
+    'phase',
+    'time_minutes_no_ai',
+    'outcome_quality',
+    'ai_tools_used',
+    'task_category',
+    'notes',
+    'created_by',
+    'updated_at',
+  ];
+
+  const rows = tasks.map((task) => {
+    // ai_usedの判定（aiToolsUsedが空配列またはAI未使用のみの場合はfalse）
+    const aiUsed =
+      task.aiToolsUsed.length > 0 && !task.aiToolsUsed.includes(AI_NOT_USED);
+
+    return [
+      task.id, // log_id
+      task.completedAt.toISOString(), // timestamp
+      format(task.completedAt, 'yyyy-MM-dd'), // date
+      memberId, // member_id
+      task.name, // task_name
+      aiUsed.toString(), // ai_used
+      task.duration.toString(), // time_minutes
+      task.taskUrl || '', // project_id
+      task.category[0] || '', // phase（最初のカテゴリ）
+      task.timeMinutesNoAi?.toString() || '', // time_minutes_no_ai
+      '', // outcome_quality（InsightLogにはない）
+      JSON.stringify(task.aiToolsUsed), // ai_tools_used
+      task.category.join(','), // task_category
+      task.notes, // notes
+      'manual_input', // created_by
+      '', // updated_at
+    ];
+  });
+
+  const csvContent = [
+    headers.join(','),
+    ...rows.map((row) =>
+      row
+        .map((cell) => {
+          // カンマや改行を含む場合はダブルクォートで囲む
+          if (cell.includes(',') || cell.includes('\n') || cell.includes('"')) {
+            return `"${cell.replace(/"/g, '""')}"`;
+          }
+          return cell;
+        })
+        .join(',')
+    ),
+  ].join('\n');
+
+  return csvContent;
+}
+
+/**
+ * KPI形式CSVデータをダウンロード
+ */
+export async function downloadKPICSV(filename: string = 'logs.csv'): Promise<void> {
+  const csvString = await exportDataAsKPICSV();
+  const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
 
   const a = document.createElement('a');
