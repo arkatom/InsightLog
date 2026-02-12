@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Sparkles, Clock, RotateCcw, Link as LinkIcon } from 'lucide-react';
+import { Clock, RotateCcw, Link as LinkIcon, Info } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -7,6 +7,7 @@ import { useTasks } from '@/hooks/useTasks';
 import { useSessions } from '@/hooks/useSessions';
 import { useSettings } from '@/hooks/useSettings';
 import { TASK_CATEGORIES } from '@/constants/categories';
+import { AI_TOOLS, AI_NOT_USED } from '@/constants/aiTools';
 import { toast } from 'sonner';
 import { secondsToMinutes } from '@/lib/time';
 
@@ -17,8 +18,9 @@ export function TaskForm() {
 
   const [name, setName] = useState('');
   const [taskUrl, setTaskUrl] = useState('');
-  const [aiUsed, setAiUsed] = useState(false);
+  const [selectedAITools, setSelectedAITools] = useState<string[]>([]);
   const [duration, setDuration] = useState('');
+  const [timeMinutesNoAi, setTimeMinutesNoAi] = useState('');
   const [reworkCount, setReworkCount] = useState('0');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [customCategory, setCustomCategory] = useState('');
@@ -27,6 +29,9 @@ export function TaskForm() {
 
   // 全カテゴリ（固定 + カスタム）
   const allCategories = [...TASK_CATEGORIES, ...(settings.customCategories || [])];
+
+  // 「AI未使用」が選択されているか
+  const isAINotUsed = selectedAITools.includes(AI_NOT_USED);
 
   // 作業時間を自動計算
   useEffect(() => {
@@ -55,6 +60,34 @@ export function TaskForm() {
     if (category === 'その他') {
       setShowCustomCategoryInput((prev) => !prev);
     }
+  };
+
+  const handleAIToolToggle = (tool: string) => {
+    setSelectedAITools((prev) => {
+      // 「AI未使用」を選択した場合
+      if (tool === AI_NOT_USED) {
+        if (prev.includes(AI_NOT_USED)) {
+          // 「AI未使用」を解除
+          return prev.filter((t) => t !== AI_NOT_USED);
+        } else {
+          // 「AI未使用」のみを選択（他は全て解除）
+          return [AI_NOT_USED];
+        }
+      }
+
+      // 「AI未使用」以外のツールを選択した場合
+      if (prev.includes(AI_NOT_USED)) {
+        // 「AI未使用」が選択されている場合は何もしない
+        return prev;
+      }
+
+      // 通常の複数選択トグル
+      if (prev.includes(tool)) {
+        return prev.filter((t) => t !== tool);
+      } else {
+        return [...prev, tool];
+      }
+    });
   };
 
   const handleAddCustomCategory = () => {
@@ -101,12 +134,19 @@ export function TaskForm() {
       return;
     }
 
+    if (selectedAITools.length === 0) {
+      toast.error('AIツール利用状況を選択してください');
+      return;
+    }
+
     try {
       await addTask({
         name: name.trim(),
         taskUrl: taskUrl.trim() || undefined,
-        aiUsed,
+        aiUsed: !isAINotUsed, // 後方互換性のため
+        aiToolsUsed: selectedAITools,
         duration: Number(duration),
+        timeMinutesNoAi: timeMinutesNoAi ? Number(timeMinutesNoAi) : undefined,
         reworkCount: Number(reworkCount),
         category: selectedCategories,
         notes: notes.trim(),
@@ -117,8 +157,9 @@ export function TaskForm() {
       // フォームをリセット
       setName('');
       setTaskUrl('');
-      setAiUsed(false);
+      setSelectedAITools([]);
       setDuration('');
+      setTimeMinutesNoAi('');
       setReworkCount('0');
       setSelectedCategories([]);
       setShowCustomCategoryInput(false);
@@ -154,20 +195,53 @@ export function TaskForm() {
           />
         </div>
 
-        {/* AI利用 + 所要時間 + 手戻り回数（横並び） */}
-        <div className="grid grid-cols-3 gap-3">
-          {/* AI利用 */}
-          <label className="flex items-center gap-2 px-3 py-3 bg-primary-50 rounded-lg cursor-pointer hover:bg-primary-100 transition-colors">
-            <input
-              type="checkbox"
-              className="w-4 h-4 rounded text-accent-500 focus:ring-accent-300"
-              checked={aiUsed}
-              onChange={(e) => setAiUsed(e.target.checked)}
-            />
-            <Sparkles size={14} className="text-primary-500" />
-            <span className="text-xs text-primary-600 whitespace-nowrap">AI利用</span>
-          </label>
+        {/* AIツール利用状況 */}
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <p className="text-sm text-primary-500">AIツール利用状況</p>
+            {isAINotUsed && (
+              <div className="group relative">
+                <Info size={14} className="text-primary-400 cursor-help" />
+                <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-64 p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-10">
+                  AI未使用を選択すると他の選択肢は無効になります
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {AI_TOOLS.map((tool) => {
+              const isDisabled = isAINotUsed && tool !== AI_NOT_USED;
+              const isSelected = selectedAITools.includes(tool);
 
+              return (
+                <label
+                  key={tool}
+                  className={`cursor-pointer ${isDisabled ? 'opacity-40 cursor-not-allowed' : ''}`}
+                >
+                  <input
+                    type="checkbox"
+                    className="peer hidden"
+                    checked={isSelected}
+                    onChange={() => !isDisabled && handleAIToolToggle(tool)}
+                    disabled={isDisabled}
+                  />
+                  <span
+                    className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
+                      isSelected
+                        ? 'bg-accent-500 text-white'
+                        : 'bg-primary-100 text-primary-600 peer-checked:bg-accent-500 peer-checked:text-white'
+                    }`}
+                  >
+                    {tool}
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 所要時間 + AI未利用時の所要時間 + 手戻り回数（横並び） */}
+        <div className="grid grid-cols-3 gap-3">
           {/* 所要時間 */}
           <div className="flex items-center gap-2 px-3 py-3 bg-primary-50 rounded-lg focus-within:ring-2 focus-within:ring-accent-200 focus-within:bg-white transition-all">
             <Clock size={14} className="text-primary-400" />
@@ -180,6 +254,20 @@ export function TaskForm() {
               onChange={(e) => setDuration(e.target.value)}
             />
             <span className="text-xs text-primary-400">分</span>
+          </div>
+
+          {/* AI未利用時の所要時間 */}
+          <div className="flex items-center gap-2 px-3 py-3 bg-primary-50 rounded-lg focus-within:ring-2 focus-within:ring-accent-200 focus-within:bg-white transition-all">
+            <Clock size={14} className="text-primary-400 opacity-60" />
+            <input
+              type="number"
+              placeholder="AI無"
+              min="0"
+              className="w-12 bg-transparent border-0 text-sm focus:ring-0 focus:outline-none"
+              value={timeMinutesNoAi}
+              onChange={(e) => setTimeMinutesNoAi(e.target.value)}
+            />
+            <span className="text-xs text-primary-400 opacity-60">分</span>
           </div>
 
           {/* 手戻り回数 */}

@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
+import { Button } from '@/components/ui/Button';
 import { StatsSummary } from './StatsSummary';
 import { ComparisonChart } from './ComparisonChart';
 import { CategoryChart } from './CategoryChart';
 import { TimelineChart } from './TimelineChart';
 import { useStatistics } from '@/hooks/useStatistics';
+import { downloadKPICSV } from '@/lib/export';
+import { toast } from 'sonner';
 import type { DateRange } from '@/types/statistics';
 
 interface StatsModalProps {
@@ -45,6 +48,26 @@ export function StatsModal({ isOpen, onClose }: StatsModalProps) {
 
         {/* 統計サマリー */}
         <StatsSummary stats={stats} />
+
+        {/* KPI形式CSVエクスポートボタン */}
+        {stats.basic.totalTasks > 0 && (
+          <div className="flex justify-end">
+            <Button
+              size="sm"
+              onClick={async () => {
+                try {
+                  await downloadKPICSV();
+                  toast.success('KPI形式CSVをダウンロードしました');
+                } catch (error) {
+                  toast.error('エクスポートに失敗しました');
+                  console.error(error);
+                }
+              }}
+            >
+              KPI形式でエクスポート
+            </Button>
+          </div>
+        )}
 
         {/* AI比較グラフ */}
         {stats.basic.totalTasks > 0 && <ComparisonChart data={stats.aiComparison} />}
