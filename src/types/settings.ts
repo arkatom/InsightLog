@@ -16,6 +16,7 @@ export interface NotificationSettings {
 
 export interface AppSettings {
   id?: string;                   // IndexedDB用のID（通常は'app-settings'固定）
+  memberId: string;              // メンバーID（UUID、初回起動時に自動生成）
   timer: TimerSettings;
   notification: NotificationSettings;
   customCategories: string[];    // ユーザー定義カテゴリ
@@ -23,7 +24,7 @@ export interface AppSettings {
   lastBackupDate: Date | null;   // 最終バックアップ日
 }
 
-export const DEFAULT_SETTINGS: AppSettings = {
+export const DEFAULT_SETTINGS: Omit<AppSettings, 'memberId'> = {
   timer: {
     pomodoroDuration: 25,
     shortBreakDuration: 5,
