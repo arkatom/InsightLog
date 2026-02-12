@@ -17,6 +17,22 @@ export class InsightLogDatabase extends Dexie {
       sessions: 'id, startedAt, completedAt, type',
       settings: 'id'
     });
+
+    // バージョン2: aiToolsUsed, timeMinutesNoAi, memberId追加
+    this.version(2).stores({
+      tasks: 'id, name, createdAt, completedAt, aiUsed, *category, *aiToolsUsed',
+      sessions: 'id, startedAt, completedAt, type',
+      settings: 'id, memberId'
+    }).upgrade(async (trans) => {
+      // 既存のタスクにデフォルト値を設定
+      const tasks = await trans.table('tasks').toArray();
+      for (const task of tasks) {
+        await trans.table('tasks').update(task.id, {
+          aiToolsUsed: task.aiUsed ? ['AI（旧データ）'] : [],
+          timeMinutesNoAi: undefined
+        });
+      }
+    });
   }
 }
 
