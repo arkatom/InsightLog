@@ -62,7 +62,7 @@ export async function exportDataAsCSV(): Promise<string> {
     task.reworkCount.toString(),
     task.notes,
     format(task.createdAt, 'yyyy-MM-dd HH:mm:ss'),
-    format(task.completedAt, 'yyyy-MM-dd HH:mm:ss'),
+    task.completedAt ? format(task.completedAt, 'yyyy-MM-dd HH:mm:ss') : 'N/A',
   ]);
 
   const csvContent = [

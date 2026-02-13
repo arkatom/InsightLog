@@ -10,5 +10,5 @@ export interface Task {
   reworkCount: number;           // 手戻り回数
   notes: string;                 // 振り返りメモ
   createdAt: Date;               // 作成日時
-  completedAt: Date;             // 完了日時
+  completedAt: Date | null;      // 完了日時（未完了の場合はnull）
 }

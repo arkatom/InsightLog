@@ -141,7 +141,7 @@ export function useTimer() {
     setCurrentCycle,
     setRemainingSeconds,
     pause,
-    startTimer,
+    // startTimer is stable (useCallback), no need to include
   ]);
 
   // タイマー終了の検知（tick処理はApp.tsxで一元管理）

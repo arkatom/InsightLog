@@ -6,8 +6,8 @@ import type { Task } from '@/types/task';
  * タスクのCRUD操作を提供するカスタムフック
  */
 export function useTasks() {
-  // 全タスクをリアクティブに取得
-  const tasks = useLiveQuery(() => db.tasks.orderBy('completedAt').reverse().toArray());
+  // 全タスクをリアクティブに取得（作成日時の降順）
+  const tasks = useLiveQuery(() => db.tasks.orderBy('createdAt').reverse().toArray());
 
   /**
    * タスクを追加
@@ -20,7 +20,7 @@ export function useTasks() {
       ...task,
       id,
       createdAt: now,
-      completedAt: now,
+      completedAt: null,  // 完了時に設定されるべき
     });
 
     return id;
@@ -48,12 +48,13 @@ export function useTasks() {
   };
 
   /**
-   * 日付範囲でタスクを取得
+   * 日付範囲でタスクを取得（完了済みタスクのみ）
    */
   const getTasksByDateRange = async (startDate: Date, endDate: Date): Promise<Task[]> => {
     return await db.tasks
       .where('completedAt')
       .between(startDate, endDate, true, true)
+      .filter(task => task.completedAt !== null)
       .toArray();
   };
 
