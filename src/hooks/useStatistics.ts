@@ -33,6 +33,7 @@ export function useStatistics(dateRange: DateRange = 'today') {
     // 期間でフィルタ
     const filteredTasks = tasks.filter((task) => {
       const taskDate = task.completedAt;
+      if (!taskDate) return false; // null チェック
       switch (dateRange) {
         case 'today':
           return isToday(taskDate);
@@ -140,7 +141,7 @@ export function useStatistics(dateRange: DateRange = 'today') {
       const days = eachDayOfInterval({ start, end });
 
       days.forEach((day) => {
-        const dayTasks = filteredTasks.filter((t) => isSameDay(t.completedAt, day));
+        const dayTasks = filteredTasks.filter((t) => t.completedAt && isSameDay(t.completedAt, day));
         const aiDayTasks = dayTasks.filter((t) => t.aiUsed);
 
         daily.push({

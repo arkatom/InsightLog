@@ -193,7 +193,7 @@ export async function importDataFromJSON(jsonString: string): Promise<void> {
   const tasksWithDates = data.tasks.map((task) => ({
     ...task,
     createdAt: new Date(task.createdAt),
-    completedAt: new Date(task.completedAt),
+    completedAt: task.completedAt ? new Date(task.completedAt) : null,
   }));
 
   const sessionsWithDates = data.sessions.map((session) => ({
@@ -283,7 +283,9 @@ export function downloadMarkdownSummary(
  * タスクをKPIダッシュボード形式のCSVでエクスポート
  */
 export async function exportDataAsKPICSV(): Promise<string> {
-  const tasks = await db.tasks.toArray();
+  const allTasks = await db.tasks.toArray();
+  // 完了済みタスクのみをエクスポート
+  const tasks = allTasks.filter((task) => task.completedAt !== null);
   const settings = await db.settings.toArray();
   const memberId = settings[0]?.memberId || 'unknown';
 
@@ -314,8 +316,8 @@ export async function exportDataAsKPICSV(): Promise<string> {
 
     return [
       task.id, // log_id
-      task.completedAt.toISOString(), // timestamp
-      format(task.completedAt, 'yyyy-MM-dd'), // date
+      task.completedAt!.toISOString(), // timestamp
+      format(task.completedAt!, 'yyyy-MM-dd'), // date
       memberId, // member_id
       task.name, // task_name
       aiUsed.toString(), // ai_used
