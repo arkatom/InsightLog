@@ -280,12 +280,23 @@ export function downloadMarkdownSummary(
 }
 
 /**
+ * Dateをローカルタイムゾーンオフセット付きISO形式でフォーマット
+ * 例: 2026-01-09T06:07:32.886+09:00
+ */
+function formatLocalISO(date: Date): string {
+  const offset = -date.getTimezoneOffset(); // JST=+540, UTC=0, EST=-300
+  const sign = offset >= 0 ? '+' : '-';
+  const absOffset = Math.abs(offset);
+  const hours = String(Math.floor(absOffset / 60)).padStart(2, '0');
+  const minutes = String(absOffset % 60).padStart(2, '0');
+  return format(date, "yyyy-MM-dd'T'HH:mm:ss.SSS") + `${sign}${hours}:${minutes}`;
+}
+
+/**
  * タスクをKPIダッシュボード形式のCSVでエクスポート
  */
 export async function exportDataAsKPICSV(): Promise<string> {
-  const allTasks = await db.tasks.toArray();
-  // 完了済みタスクのみをエクスポート
-  const tasks = allTasks.filter((task) => task.completedAt !== null);
+  const tasks = await db.tasks.toArray();
   const settings = await db.settings.toArray();
   const memberId = settings[0]?.memberId || 'unknown';
 
@@ -298,12 +309,11 @@ export async function exportDataAsKPICSV(): Promise<string> {
     'task_name',
     'ai_used',
     'time_minutes',
+    'ai_tools_used',
     'project_id',
     'phase',
     'time_minutes_no_ai',
     'outcome_quality',
-    'ai_tools_used',
-    'task_category',
     'notes',
     'created_by',
     'updated_at',
@@ -314,20 +324,25 @@ export async function exportDataAsKPICSV(): Promise<string> {
     const aiUsed =
       task.aiToolsUsed.length > 0 && !task.aiToolsUsed.includes(AI_NOT_USED);
 
+    // AI_NOT_USEDを除外してカンマ区切り文字列にする
+    const aiToolsStr = aiUsed
+      ? task.aiToolsUsed.filter((tool) => tool !== AI_NOT_USED).join(',')
+      : '';
+
+    const logDate = task.completedAt ?? task.createdAt;
     return [
       task.id, // log_id
-      task.completedAt!.toISOString(), // timestamp
-      format(task.completedAt!, 'yyyy-MM-dd'), // date
+      formatLocalISO(logDate), // timestamp
+      format(logDate, 'yyyy-MM-dd'), // date
       memberId, // member_id
       task.name, // task_name
       aiUsed.toString(), // ai_used
       task.duration.toString(), // time_minutes
+      aiToolsStr, // ai_tools_used
       task.taskUrl || '', // project_id
       task.category[0] || '', // phase（最初のカテゴリ）
       task.timeMinutesNoAi?.toString() || '', // time_minutes_no_ai
       '', // outcome_quality（InsightLogにはない）
-      JSON.stringify(task.aiToolsUsed), // ai_tools_used
-      task.category.join(','), // task_category
       task.notes, // notes
       'manual_input', // created_by
       '', // updated_at

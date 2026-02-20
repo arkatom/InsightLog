@@ -1,7 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useState } from 'react';
 import { db } from '@/lib/db';
-import { generateUUID } from '@/lib/uuid';
 import type { AppSettings } from '@/types/settings';
 import { DEFAULT_SETTINGS } from '@/types/settings';
 
@@ -18,22 +17,16 @@ export function useSettings() {
     const initializeSettings = async () => {
       const saved = await db.settings.get(SETTINGS_ID);
 
-      // 初回起動時: memberIdを自動生成
+      // 初回起動時: memberIdは空文字（ユーザーが設定画面で入力）
       if (!saved) {
         const initialSettings: AppSettings = {
           ...DEFAULT_SETTINGS,
           id: SETTINGS_ID,
-          memberId: generateUUID(),
+          memberId: '',
         };
         await db.settings.put(initialSettings);
         setIsInitialized(true);
         return;
-      }
-
-      // memberIdが存在しない場合（マイグレーション対応）
-      if (!saved.memberId) {
-        const updated = { ...saved, memberId: generateUUID() };
-        await db.settings.put(updated);
       }
 
       setIsInitialized(true);
@@ -71,7 +64,7 @@ export function useSettings() {
    */
   const resetSettings = async (): Promise<void> => {
     const current = await db.settings.get(SETTINGS_ID);
-    const memberId = current?.memberId || generateUUID();
+    const memberId = current?.memberId || '';
     await db.settings.put({ ...DEFAULT_SETTINGS, id: SETTINGS_ID, memberId });
   };
 

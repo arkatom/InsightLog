@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Upload, Trash2, FileText, FileJson, FileSpreadsheet, Download, Volume2, Bell } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { Modal } from '@/components/ui/Modal';
@@ -8,7 +8,7 @@ import { useStatistics } from '@/hooks/useStatistics';
 import { useInstallPrompt } from '@/hooks/useInstallPrompt';
 import {
   downloadJSON,
-  downloadCSV,
+  downloadKPICSV,
   downloadMarkdownSummary,
   importDataFromJSON,
   deleteAllData,
@@ -28,15 +28,31 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const { canInstall, isInstalled, promptInstall } = useInstallPrompt();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [memberName, setMemberName] = useState(settings.memberId);
   const [timerSettings, setTimerSettings] = useState(settings.timer);
   const [notificationSettings, setNotificationSettings] = useState(settings.notification);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // settingsが非同期で読み込まれるため、初期値を同期
+  useEffect(() => {
+    setMemberName(settings.memberId);
+  }, [settings.memberId]);
 
   const handleInstall = async () => {
     const installed = await promptInstall();
     if (installed) {
       toast.success('InsightLogをインストールしました');
     }
+  };
+
+  const handleSaveMemberName = async () => {
+    const trimmed = memberName.trim();
+    if (!trimmed) {
+      toast.error('メンバー名を入力してください');
+      return;
+    }
+    await updateSettings({ memberId: trimmed });
+    toast.success('メンバー名を保存しました');
   };
 
   const handleSaveSettings = () => {
@@ -76,7 +92,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
   const handleExportCSV = async () => {
     try {
-      await downloadCSV(`insightlog-tasks-${format(new Date(), 'yyyyMMdd')}.csv`);
+      await downloadKPICSV(`logs-${format(new Date(), 'yyyyMMdd')}.csv`);
       toast.success('CSVファイルをダウンロードしました');
     } catch (error) {
       toast.error('エクスポートに失敗しました');
@@ -135,6 +151,25 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="設定">
       <div className="space-y-6">
+        {/* メンバー名 */}
+        <section>
+          <h3 className="text-sm font-medium text-primary-700 mb-3">メンバー名</h3>
+          <p className="text-xs text-primary-500 mb-2">CSVエクスポート時の member_id に使用されます</p>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder="例: yamada"
+              value={memberName}
+              onChange={(e) => setMemberName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSaveMemberName()}
+              className="flex-1 px-3 py-2 bg-primary-50 rounded-lg border-0 focus:ring-2 focus:ring-accent-200 text-sm"
+            />
+            <Button onClick={handleSaveMemberName} size="sm">
+              保存
+            </Button>
+          </div>
+        </section>
+
         {/* PWAインストール */}
         {canInstall && (
           <section className="bg-accent-50 rounded-lg p-4">
