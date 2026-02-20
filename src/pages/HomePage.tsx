@@ -10,6 +10,7 @@ import { TaskForm } from '@/components/task/TaskForm';
 import { TaskList } from '@/components/task/TaskList';
 import { useTimer } from '@/hooks/useTimer';
 import { useStatistics } from '@/hooks/useStatistics';
+import { useSettings } from '@/hooks/useSettings';
 import { formatMinutes } from '@/lib/time';
 
 // 統計モーダルと設定モーダルを遅延ロード
@@ -22,6 +23,8 @@ export function HomePage() {
   const [showSettings, setShowSettings] = useState(false);
   const { currentCycle } = useTimer();
   const stats = useStatistics('today');
+  const { settings } = useSettings();
+  const showTimer = settings.showTimer ?? true;
 
   return (
     <Container>
@@ -31,32 +34,36 @@ export function HomePage() {
         onSettingsClick={() => setShowSettings(true)}
       />
 
-      <ModeSelector />
+      {showTimer && (
+        <>
+          <ModeSelector />
 
-      <Card>
-        <SessionIndicator />
-        <TimerDisplay />
-        <div className="text-primary-400 text-center mb-8">サイクル {currentCycle}/4</div>
-        <TimerControls />
+          <Card>
+            <SessionIndicator />
+            <TimerDisplay />
+            <div className="text-primary-400 text-center mb-8">サイクル {currentCycle}/4</div>
+            <TimerControls />
 
-        {/* 今日の統計 */}
-        <div className="mt-8 pt-6 border-t border-primary-100 flex justify-around">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-primary-800">{stats.basic.totalSessions}</div>
-            <div className="text-xs text-primary-400">完了セッション</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-primary-800">
-              {formatMinutes(Math.floor(stats.basic.totalFocusTime / 60))}
+            {/* 今日の統計 */}
+            <div className="mt-8 pt-6 border-t border-primary-100 flex justify-around">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-primary-800">{stats.basic.totalSessions}</div>
+                <div className="text-xs text-primary-400">完了セッション</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-primary-800">
+                  {formatMinutes(Math.floor(stats.basic.totalFocusTime / 60))}
+                </div>
+                <div className="text-xs text-primary-400">集中時間</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-primary-800">{stats.basic.totalTasks}</div>
+                <div className="text-xs text-primary-400">完了タスク</div>
+              </div>
             </div>
-            <div className="text-xs text-primary-400">集中時間</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-primary-800">{stats.basic.totalTasks}</div>
-            <div className="text-xs text-primary-400">完了タスク</div>
-          </div>
-        </div>
-      </Card>
+          </Card>
+        </>
+      )}
 
       {/* タスク記録フォーム */}
       <TaskForm />

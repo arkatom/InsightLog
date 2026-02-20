@@ -170,6 +170,20 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           </div>
         </section>
 
+        {/* タイマー表示設定 */}
+        <section>
+          <h3 className="text-sm font-medium text-primary-700 mb-3">表示設定</h3>
+          <label className="flex items-center justify-between cursor-pointer">
+            <span className="text-sm text-primary-700">タイマーを表示する</span>
+            <input
+              type="checkbox"
+              checked={settings.showTimer ?? true}
+              onChange={(e) => updateSettings({ showTimer: e.target.checked })}
+              className="w-4 h-4 rounded text-accent-500"
+            />
+          </label>
+        </section>
+
         {/* PWAインストール */}
         {canInstall && (
           <section className="bg-accent-50 rounded-lg p-4">

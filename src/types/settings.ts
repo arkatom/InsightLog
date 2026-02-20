@@ -22,6 +22,7 @@ export interface AppSettings {
   customCategories: string[];    // ユーザー定義カテゴリ
   onboardingCompleted: boolean;  // オンボーディング完了フラグ
   lastBackupDate: Date | null;   // 最終バックアップ日
+  showTimer?: boolean;           // タイマーセクションの表示（デフォルト: true）
 }
 
 export const DEFAULT_SETTINGS: Omit<AppSettings, 'memberId'> = {
@@ -41,5 +42,6 @@ export const DEFAULT_SETTINGS: Omit<AppSettings, 'memberId'> = {
   },
   customCategories: [],
   onboardingCompleted: false,
-  lastBackupDate: null
+  lastBackupDate: null,
+  showTimer: true,
 };
