@@ -2,11 +2,13 @@ import Dexie, { type Table } from 'dexie';
 import type { Task } from '@/types/task';
 import type { PomodoroSession } from '@/types/session';
 import type { AppSettings } from '@/types/settings';
+import type { Report } from '@/types/report';
 
 export class InsightLogDatabase extends Dexie {
   tasks!: Table<Task, string>;
   sessions!: Table<PomodoroSession, string>;
   settings!: Table<AppSettings, string>;
+  reports!: Table<Report, string>;
 
   constructor() {
     super('InsightLogDB');
@@ -32,6 +34,14 @@ export class InsightLogDatabase extends Dexie {
           timeMinutesNoAi: undefined
         });
       }
+    });
+
+    // バージョン3: reportsテーブル追加
+    this.version(3).stores({
+      tasks: 'id, name, createdAt, completedAt, aiUsed, *category, *aiToolsUsed',
+      sessions: 'id, startedAt, completedAt, type',
+      settings: 'id, memberId',
+      reports: 'id, name, uploadedAt'
     });
   }
 }
