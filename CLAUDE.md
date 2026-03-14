@@ -39,6 +39,7 @@
 ## データベース
 
 Dexie.js（IndexedDB ラッパー）で3テーブル管理:
+
 - `tasks` — タスク記録（AI利用フラグ、カテゴリ、所要時間等）
 - `sessions` — ポモドーロセッション
 - `settings` — アプリ設定
