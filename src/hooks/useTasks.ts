@@ -20,7 +20,7 @@ export function useTasks() {
       ...task,
       id,
       createdAt: now,
-      completedAt: null,  // 完了時に設定されるべき
+      completedAt: now,
     });
 
     return id;
