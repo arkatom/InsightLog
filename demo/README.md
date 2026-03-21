@@ -100,34 +100,34 @@ tail -f claude-progress.txt
 demo/
 ├── README.md               # このファイル
 ├── run.sh                  # デモ起動スクリプト
-├── issue.md                # 実装する機能の仕様（受け入れ条件）
-├── feature_list.json       # パイプライン DAG 定義（エージェント・依存関係）
-├── plan_output.md          # 実行時に planner が生成する実装計画書
-├── logs/                   # セッションログ
-└── screenshots/            # E2E スクリーンショット・動画・レポート
+├── pipeline.json           # フェーズ DAG テンプレート（git 管理・変更不要）
+├── feature_list.json       # 実行時に run.sh が生成（gitignore・触らない）
+├── plan_output.md          # 実行時に planner が生成する実装計画書（gitignore）
+├── fallback/
+│   └── issue.md            # GitHub 未認証時のフォールバック仕様書
+├── logs/                   # セッションログ（gitignore）
+└── screenshots/            # E2E スクリーンショット・動画・レポート（gitignore）
 ```
 
-### issue.md と feature_list.json の役割分担
+### ファイルの役割分担
 
-| ファイル | 役割 | 誰が読む |
-|---------|------|---------|
-| `issue.md` | **何を作るか**（製品仕様・受け入れ条件） | planner, implementer, reviewer |
-| `feature_list.json` | **どう進めるか**（エージェントの順序・依存関係） | supervisor のみ |
+| ファイル | 役割 | git 管理 | 誰が読む |
+|---------|------|---------|---------|
+| `pipeline.json` | **どう進めるか**（エージェント順序・依存関係の DAG テンプレート） | ✅ committed | run.sh のみ |
+| `feature_list.json` | パイプライン実行状態（pipeline.json + Issue データから毎回生成） | ❌ gitignore | supervisor のみ |
+| `fallback/issue.md` | **何を作るか**（製品仕様・受け入れ条件）— GitHub Issue の代替 | ✅ committed | planner, implementer, reviewer |
 
-issue.md は GitHub Issue としても管理されます（run.sh が自動作成）。
-feature_list.json は GitHub には載せません。ローカルのパイプライン設定です。
+`feature_list.json` は `run.sh` が毎回クリーンな状態で生成するため、手動編集不要です。
 
 ---
 
 ## 再実行する場合
 
 ```bash
-# feature_list.json のステータスをリセット
-# （全フェーズの "done" を "pending" に戻す）
-sed -i '' 's/"done"/"pending"/g' demo/feature_list.json
-
 ./demo/run.sh
 ```
+
+再実行時、`feature_list.json` は自動的に上書き生成されます（手動リセット不要）。
 
 既存の GitHub Issue は `demo/github_issue_number.txt` に番号が保存されており、再実行時に再利用されます。
 

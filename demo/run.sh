@@ -7,10 +7,11 @@
 #
 # 動作:
 #   1. GitHub Issue を作成（または既存のものを再利用）
-#   2. claude --worktree で supervisor エージェントを起動
-#   3. feature_list.json のフェーズ定義に従って Sub-agent が自律実行
-#      implement → unit-test + e2e-plan → e2e-run → commit → pr → review
-#   4. セッションログを demo/logs/ に保存
+#   2. pipeline.json から feature_list.json を生成（毎回クリーンな状態）
+#   3. claude --worktree で supervisor エージェントを起動
+#   4. feature_list.json のフェーズ定義に従って Sub-agent が自律実行
+#      plan → implement → unit-test + e2e-plan → e2e-run → commit → pr → review
+#   5. セッションログを demo/logs/ に保存
 #
 # 所要時間: 40〜60分
 # 前提: InsightLog リポジトリのルートで実行すること
@@ -24,6 +25,7 @@ REPO_DIR="$(cd "${DEMO_DIR}/.." && pwd)"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 LOG_FILE="${DEMO_DIR}/logs/session_${TIMESTAMP}.log"
 ISSUE_NUMBER_FILE="${DEMO_DIR}/github_issue_number.txt"
+FALLBACK_ISSUE="${DEMO_DIR}/fallback/issue.md"
 
 mkdir -p "${DEMO_DIR}/logs" "${DEMO_DIR}/screenshots"
 
@@ -34,18 +36,18 @@ cat << 'BANNER'
 ║                                                                      ║
 ║   🚀  Ship-from-Issue PRファクトリー                                 ║
 ║                                                                      ║
-║   Issue → 実装 → UT → Playwright E2E → コミット → PR → レビュー     ║
+║   Issue → 計画 → 実装 → UT → Playwright E2E → コミット → PR → レビュー ║
 ║                                                                      ║
 ║   アプリ: InsightLog（ポモドーロ × AI活用記録）                      ║
-║   機能:   feature_list.json のフェーズ定義を参照                     ║
+║   設定:   demo/pipeline.json のフェーズ定義を参照                    ║
 ║                                                                      ║
 ╚══════════════════════════════════════════════════════════════════════╝
 
 BANNER
 
 echo "  Sub-agent 構成:"
-echo "  supervisor → implementer → [test-writer, e2e-planner] → e2e-runner"
-echo "             → committer → pr-creator → pr-reviewer"
+echo "  supervisor → planner → implementer → [test-writer, e2e-planner] → e2e-runner"
+echo "             → committer → pr-creator → reviewer"
 echo ""
 
 # ── GitHub Issue の作成/再利用 ──────────────────────────────────────────────
@@ -66,10 +68,10 @@ if command -v gh &> /dev/null && gh auth status &> /dev/null 2>&1; then
 
   # なければ新規作成
   if [[ -z "${ISSUE_NUMBER}" ]]; then
-    ISSUE_TITLE=$(head -1 "${DEMO_DIR}/issue.md" | sed 's/^# //')
+    ISSUE_TITLE=$(head -1 "${FALLBACK_ISSUE}" | sed 's/^# //')
     ISSUE_URL=$(gh issue create \
       --title "${ISSUE_TITLE}" \
-      --body "$(cat "${DEMO_DIR}/issue.md")" \
+      --body "$(cat "${FALLBACK_ISSUE}")" \
       --label "enhancement" 2>/dev/null || echo "")
 
     if [[ -n "${ISSUE_URL}" ]]; then
@@ -77,16 +79,16 @@ if command -v gh &> /dev/null && gh auth status &> /dev/null 2>&1; then
       echo "${ISSUE_NUMBER}" > "${ISSUE_NUMBER_FILE}"
       echo "  ✅ Issue #${ISSUE_NUMBER} を作成: ${ISSUE_URL}"
     else
-      echo "  ⚠️  Issue 作成失敗。demo/issue.md をフォールバックとして使用"
+      echo "  ⚠️  Issue 作成失敗。demo/fallback/issue.md をフォールバックとして使用"
     fi
   fi
 else
-  echo "⚠️  GitHub CLI 未認証。demo/issue.md をフォールバックとして使用"
+  echo "⚠️  GitHub CLI 未認証。demo/fallback/issue.md をフォールバックとして使用"
   echo "   ※ 認証するには: gh auth login"
 fi
 
 echo ""
-echo "📋 Issue: ${ISSUE_NUMBER:+"GitHub Issue #${ISSUE_NUMBER}"}${ISSUE_NUMBER:-"demo/issue.md（ローカル）"}"
+echo "📋 Issue: ${ISSUE_NUMBER:+"GitHub Issue #${ISSUE_NUMBER}"}${ISSUE_NUMBER:-"demo/fallback/issue.md（ローカル）"}"
 echo "📝 ログ:  ${LOG_FILE}"
 echo "⏱  完了まで 40〜60 分かかります..."
 echo ""
@@ -97,13 +99,44 @@ echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
-# ── feature_list.json の started_at を更新 ────────────────────────────────
-NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-if [[ "$OSTYPE" == "darwin"* ]]; then
-  sed -i '' "s|\"started_at\": null|\"started_at\": \"${NOW}\"|" "${DEMO_DIR}/feature_list.json" 2>/dev/null || true
+# ── feature_list.json を pipeline.json + Issue データから生成 ────────────
+if [[ -n "${ISSUE_NUMBER}" ]]; then
+  ISSUE_TITLE=$(gh issue view "${ISSUE_NUMBER}" --json title -q .title 2>/dev/null \
+    || head -1 "${FALLBACK_ISSUE}" | sed 's/^# //')
+  BRANCH_NAME="feat/issue-${ISSUE_NUMBER}"
+  GITHUB_ISSUE_JSON="${ISSUE_NUMBER}"
 else
-  sed -i "s|\"started_at\": null|\"started_at\": \"${NOW}\"|" "${DEMO_DIR}/feature_list.json" 2>/dev/null || true
+  ISSUE_TITLE=$(head -1 "${FALLBACK_ISSUE}" | sed 's/^# //')
+  BRANCH_NAME="feat/local-$(date +%Y%m%d%H%M%S)"
+  GITHUB_ISSUE_JSON="null"
 fi
+
+NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+python3 - << PYEOF > "${DEMO_DIR}/feature_list.json"
+import json
+
+with open("${DEMO_DIR}/pipeline.json") as f:
+    phases = json.load(f)
+
+for p in phases:
+    p["status"] = "pending"
+
+print(json.dumps({
+    "feature": "${ISSUE_TITLE}",
+    "issue": "demo/fallback/issue.md",
+    "github_issue": ${GITHUB_ISSUE_JSON},
+    "branch": "${BRANCH_NAME}",
+    "started_at": "${NOW}",
+    "completed_at": None,
+    "phases": phases
+}, ensure_ascii=False, indent=2))
+PYEOF
+
+echo "📋 pipeline.json から feature_list.json を生成しました"
+echo "   feature: ${ISSUE_TITLE}"
+echo "   branch:  ${BRANCH_NAME}"
+echo ""
 
 # ── Claude Code をワークツリーモードで起動 ────────────────────────────────
 # .claude/commands/ship-from-issue.md から本文（frontmatter 除外）を取得

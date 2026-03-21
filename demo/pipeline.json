@@ -1,0 +1,10 @@
+[
+  { "id": "plan",      "agent": "planner",     "depends_on": [],                        "label": "実装計画策定（多役割: PM/Searcher/Architect/Devil）" },
+  { "id": "implement", "agent": "implementer", "depends_on": ["plan"],                  "label": "機能実装" },
+  { "id": "unit-test", "agent": "test-writer", "depends_on": ["implement"],             "label": "ユニットテスト作成" },
+  { "id": "e2e-plan",  "agent": "e2e-planner", "depends_on": ["implement"],             "label": "E2Eテスト設計" },
+  { "id": "e2e-run",   "agent": "e2e-runner",  "depends_on": ["unit-test", "e2e-plan"], "label": "E2Eテスト実行・録画" },
+  { "id": "commit",    "agent": "committer",   "depends_on": ["e2e-run"],               "label": "コミット・プッシュ" },
+  { "id": "pr",        "agent": "pr-creator",  "depends_on": ["commit"],                "label": "PR作成" },
+  { "id": "review",    "agent": "reviewer",    "depends_on": ["pr"],                    "label": "PRレビュー（多役割: PM/quality/ux/test/Devil）" }
+]

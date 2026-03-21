@@ -41,3 +41,7 @@ test-results/
 
 # GitHub Issue番号（ローカル状態）
 demo/github_issue_number.txt
+
+# デモ実行時状態（自動生成）
+demo/feature_list.json
+demo/plan_output.md
