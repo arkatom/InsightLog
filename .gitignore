@@ -48,3 +48,6 @@ demo/plan_output.md
 
 # Claude Code ワークツリー（自動生成）
 .claude/worktrees/
+
+# Playwright ブラウザキャッシュ（Dev Container 用）
+.playwright-browsers/
