@@ -34,7 +34,9 @@
 - `src/constants/` — 定数（timer, categories, aiTools）
 - `src/lib/` — ユーティリティ（db, time, export, uuid, roiCalc 等）
 - `e2e/` — Playwright E2Eテスト
-- `demo/` — デモ実行ハーネス（run.sh, issue.md, feature_list.json, gif-convert.sh）
+- `demo/` — デモ実行ハーネス（run.sh, issue.md, feature_list.json）
+- `.claude/agents/` — Ship-from-Issue 汎用 Sub-agent 定義（supervisor / implementer / test-writer / e2e-planner / e2e-runner / committer / pr-creator / pr-reviewer）
+- `.claude/commands/` — スラッシュコマンド（/ship-from-issue）
 
 ## コード規約
 

@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 /**
  * Playwright E2E テスト設定
- * Ship-from-Issue デモ用: ビデオ録画を有効化し、GIF変換のソース素材を生成する
+ * Ship-from-Issue デモ用: ビデオ録画を有効化（.webm 形式で自動保存）
  */
 export default defineConfig({
   testDir: './e2e',
@@ -15,14 +15,11 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:5173',
 
-    // ビデオ録画: GIF 変換のソース素材として使用
+    // ビデオ録画: .webm 形式で自動保存（変換不要）
     video: 'on',
 
     // スクリーンショット: テスト失敗時に自動保存
     screenshot: 'on',
-
-    // ビデオ・スクリーンショットの保存先
-    // テスト結果は demo/screenshots/test-results/ に集まる
   },
 
   outputDir: 'demo/screenshots/test-results',
