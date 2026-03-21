@@ -172,6 +172,15 @@ CLAUDE_PID=$!
 tail -f "${LOG_FILE}" &
 TAIL_PID=$!
 
+# claude-progress.txt が作成されたらリアルタイムで追跡
+(
+  until [[ -f "${WORKTREE_PATH}/claude-progress.txt" ]]; do sleep 1; done
+  echo ""
+  echo "━━ 進捗ログ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  tail -f "${WORKTREE_PATH}/claude-progress.txt"
+) &
+PROGRESS_TAIL_PID=$!
+
 # ワークツリーの demo/ が作成されるまでポーリング（0.5秒間隔）
 until [[ -d "${WORKTREE_PATH}/demo" ]]; do sleep 0.5; done
 
@@ -182,6 +191,7 @@ cp "${DEMO_DIR}/feature_list.json" "${WORKTREE_PATH}/demo/feature_list.json"
 wait "${CLAUDE_PID}"
 EXIT_CODE=$?
 kill "${TAIL_PID}" 2>/dev/null || true
+kill "${PROGRESS_TAIL_PID}" 2>/dev/null || true
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

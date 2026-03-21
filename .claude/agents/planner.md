@@ -19,7 +19,7 @@ model: opus
 ### 1. コンテキスト読み込み
 
 ```
-Read: demo/issue.md（または ISSUE_NUMBER の GitHub Issue）
+Read: demo/fallback/issue.md（または ISSUE_NUMBER の GitHub Issue）
 Read: CLAUDE.md
 Read: .claude/skills/planner-team/SKILL.md   ← ワークフロー定義
 ```

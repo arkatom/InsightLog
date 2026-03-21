@@ -20,7 +20,7 @@ model: opus
 
 ```
 Read: .claude/skills/reviewer-team/SKILL.md   ← ワークフロー定義
-Read: demo/issue.md（受け入れ条件の確認）
+Read: demo/fallback/issue.md（受け入れ条件の確認）
 ```
 
 PR 番号は supervisor から渡される（`$PR_NUMBER` 環境変数またはプロンプト内）。
