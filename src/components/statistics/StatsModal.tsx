@@ -7,6 +7,7 @@ import { CategoryChart } from './CategoryChart';
 import { TimelineChart } from './TimelineChart';
 import { useStatistics } from '@/hooks/useStatistics';
 import { downloadKPICSV } from '@/lib/export';
+import { seedSampleData } from '@/lib/sampleData';
 import { toast } from 'sonner';
 import type { DateRange } from '@/types/statistics';
 
@@ -80,9 +81,19 @@ export function StatsModal({ isOpen, onClose }: StatsModalProps) {
 
         {/* データなしメッセージ */}
         {stats.basic.totalTasks === 0 && (
-          <div className="text-center py-12 text-primary-400">
-            <p>この期間にはタスクが記録されていません</p>
-            <p className="text-xs mt-2">タスクを記録すると、統計が表示されます</p>
+          <div className="text-center py-12">
+            <p className="text-primary-400">この期間にはタスクが記録されていません</p>
+            <p className="text-xs text-primary-400 mt-2 mb-6">タスクを記録すると、統計が表示されます</p>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={async () => {
+                await seedSampleData();
+                toast.success('サンプルデータを読み込みました（32件）');
+              }}
+            >
+              サンプルデータで試す
+            </Button>
           </div>
         )}
       </div>

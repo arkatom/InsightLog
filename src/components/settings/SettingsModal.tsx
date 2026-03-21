@@ -13,6 +13,7 @@ import {
   importDataFromJSON,
   deleteAllData,
 } from '@/lib/export';
+import { seedSampleData } from '@/lib/sampleData';
 import { audioNotification } from '@/lib/audio';
 import { requestNotificationPermission, showNotification, vibrate } from '@/lib/notification';
 import { toast } from 'sonner';
@@ -440,6 +441,23 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           )}
 
           <div className="space-y-2">
+            {/* サンプルデータ */}
+            <div className="bg-primary-50 rounded-lg p-3">
+              <h4 className="text-xs font-medium text-primary-700 mb-1">サンプルデータ</h4>
+              <p className="text-xs text-primary-500 mb-2">2週間分のデモ用データを読み込みます（32件のタスク）</p>
+              <Button
+                onClick={async () => {
+                  await seedSampleData();
+                  toast.success('サンプルデータを読み込みました');
+                }}
+                variant="secondary"
+                size="sm"
+                className="w-full"
+              >
+                サンプルデータを読み込む
+              </Button>
+            </div>
+
             {/* エクスポート */}
             <div className="bg-primary-50 rounded-lg p-3">
               <h4 className="text-xs font-medium text-primary-700 mb-2">データのエクスポート</h4>
