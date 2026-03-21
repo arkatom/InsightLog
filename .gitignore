@@ -27,3 +27,17 @@ dist-ssr
 .env
 .env.local
 .env.*.local
+
+# デモ実行ログ（自動生成）
+demo/logs/*.log
+demo/screenshots/*.png
+demo/screenshots/*.jpg
+
+# Playwright テスト結果
+demo/screenshots/test-results/
+demo/screenshots/playwright-report/
+playwright-report/
+test-results/
+
+# GitHub Issue番号（ローカル状態）
+demo/github_issue_number.txt
