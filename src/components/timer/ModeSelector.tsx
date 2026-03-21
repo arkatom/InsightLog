@@ -1,6 +1,6 @@
-import { Clock, Timer, Watch } from 'lucide-react';
-import { useTimerStore } from '@/store/timerStore';
 import type { TimerMode } from '@/constants/timer';
+import { useTimerStore } from '@/store/timerStore';
+import { Clock, Timer, Watch } from 'lucide-react';
 
 const MODES = [
   { id: 'pomodoro' as TimerMode, label: 'ポモドーロ', icon: Clock },
