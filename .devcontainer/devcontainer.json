@@ -3,8 +3,12 @@
   "build": {
     "dockerfile": "Dockerfile"
   },
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
   "forwardPorts": [5173],
-  "postCreateCommand": "npm install",
+  "postCreateCommand": "npm install && npx playwright install --with-deps chromium",
+  "postStartCommand": "echo \"$GITHUB_TOKEN\" | gh auth login --with-token --hostname github.com --git-protocol https 2>/dev/null; gh auth setup-git 2>/dev/null || true",
   "customizations": {
     "vscode": {
       "extensions": [
