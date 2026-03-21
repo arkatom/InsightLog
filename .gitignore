@@ -49,5 +49,7 @@ demo/plan_output.md
 # Claude Code ワークツリー（自動生成）
 .claude/worktrees/
 
-# Playwright ブラウザキャッシュ（Dev Container 用）
+# Dev Container キャッシュ（/workspaces に書き出されるもの）
 .playwright-browsers/
+.gh-config/
+.npm-cache/
