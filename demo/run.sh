@@ -108,7 +108,7 @@ if [[ -n "${ISSUE_NUMBER}" ]]; then
 else
   ISSUE_TITLE=$(head -1 "${FALLBACK_ISSUE}" | sed 's/^# //')
   BRANCH_NAME="feat/local-$(date +%Y%m%d%H%M%S)"
-  GITHUB_ISSUE_JSON="null"
+  GITHUB_ISSUE_JSON="None"
 fi
 
 NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
