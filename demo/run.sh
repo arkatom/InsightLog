@@ -93,8 +93,8 @@ echo "📝 ログ:  ${LOG_FILE}"
 echo "⏱  完了まで 40〜60 分かかります..."
 echo ""
 echo "  進捗確認:"
-echo "  - ${REPO_DIR}/claude-progress.txt"
-echo "  - ${DEMO_DIR}/feature_list.json"
+echo "  - ${REPO_DIR}/.claude/worktrees/demo-run/claude-progress.txt"
+echo "  - ${REPO_DIR}/.claude/worktrees/demo-run/demo/feature_list.json"
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
@@ -139,6 +139,13 @@ echo "   branch:  ${BRANCH_NAME}"
 echo ""
 
 # ── Claude Code をワークツリーモードで起動 ────────────────────────────────
+WORKTREE_NAME="demo-run"
+WORKTREE_PATH="${REPO_DIR}/.claude/worktrees/${WORKTREE_NAME}"
+
+# 再実行時クリーンアップ
+git worktree remove --force "${WORKTREE_PATH}" 2>/dev/null || true
+git branch -D "worktree-${WORKTREE_NAME}" 2>/dev/null || true
+
 # .claude/commands/ship-from-issue.md から本文（frontmatter 除外）を取得
 COMMANDS_FILE="${REPO_DIR}/.claude/commands/ship-from-issue.md"
 if [[ -f "${COMMANDS_FILE}" ]]; then
@@ -150,15 +157,31 @@ fi
 # ISSUE_NUMBER を環境変数として渡す
 export ISSUE_NUMBER="${ISSUE_NUMBER}"
 
+echo "📂 ワークツリー: ${WORKTREE_PATH}"
+echo "   進捗確認: tail -f ${WORKTREE_PATH}/claude-progress.txt"
+echo ""
 echo "Claude Code を起動中..."
 echo ""
 
-# --dangerously-skip-permissions: 非インタラクティブ実行時のツール許可をスキップ
-# -p: 非インタラクティブ実行
-# ※ --worktree は gitignore 済みの feature_list.json が引き継がれないため使用しない
-claude --dangerously-skip-permissions -p "${PROMPT}" 2>&1 | tee "${LOG_FILE}"
+# バックグラウンドで起動（--worktree demo-run で固定パスにワークツリーを作成）
+claude --worktree "${WORKTREE_NAME}" --dangerously-skip-permissions -p "${PROMPT}" \
+  > "${LOG_FILE}" 2>&1 &
+CLAUDE_PID=$!
 
-EXIT_CODE=${PIPESTATUS[0]}
+# ログをリアルタイム表示
+tail -f "${LOG_FILE}" &
+TAIL_PID=$!
+
+# ワークツリーの demo/ が作成されるまでポーリング（0.5秒間隔）
+until [[ -d "${WORKTREE_PATH}/demo" ]]; do sleep 0.5; done
+
+# gitignore 済みの feature_list.json をワークツリーに持ち込む
+cp "${DEMO_DIR}/feature_list.json" "${WORKTREE_PATH}/demo/feature_list.json"
+
+# 完了まで待機
+wait "${CLAUDE_PID}"
+EXIT_CODE=$?
+kill "${TAIL_PID}" 2>/dev/null || true
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -167,14 +190,17 @@ if [[ ${EXIT_CODE} -eq 0 ]]; then
   echo ""
   echo "✅ デモ完了！"
   echo ""
+  echo "  📂 ワークツリー（実装確認）:       ${WORKTREE_PATH}"
   echo "  📸 スクリーンショット・ビデオ: ${DEMO_DIR}/screenshots/"
   echo "  📝 セッションログ:             ${LOG_FILE}"
-  echo "  📊 進捗メモ:                  ${REPO_DIR}/claude-progress.txt"
+  echo "  📊 進捗メモ:                  ${WORKTREE_PATH}/claude-progress.txt"
   echo ""
   echo "  PR URL はログの末尾を確認してください ↑"
+  echo ""
+  echo "  ワークツリー削除: git worktree remove .claude/worktrees/${WORKTREE_NAME}"
 else
   echo ""
   echo "⚠️  エラーで終了しました（終了コード: ${EXIT_CODE}）"
   echo "  ログ:  ${LOG_FILE}"
-  echo "  進捗: ${REPO_DIR}/claude-progress.txt"
+  echo "  進捗: ${WORKTREE_PATH}/claude-progress.txt"
 fi

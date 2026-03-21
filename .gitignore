@@ -45,3 +45,6 @@ demo/github_issue_number.txt
 # デモ実行時状態（自動生成）
 demo/feature_list.json
 demo/plan_output.md
+
+# Claude Code ワークツリー（自動生成）
+.claude/worktrees/
