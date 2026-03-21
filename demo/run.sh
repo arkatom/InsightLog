@@ -150,12 +150,13 @@ fi
 # ISSUE_NUMBER を環境変数として渡す
 export ISSUE_NUMBER="${ISSUE_NUMBER}"
 
-echo "Claude Code (worktree) を起動中..."
+echo "Claude Code を起動中..."
 echo ""
 
-# --worktree: 隔離された git worktree で実行
+# --dangerously-skip-permissions: 非インタラクティブ実行時のツール許可をスキップ
 # -p: 非インタラクティブ実行
-claude --worktree -p "${PROMPT}" 2>&1 | tee "${LOG_FILE}"
+# ※ --worktree は gitignore 済みの feature_list.json が引き継がれないため使用しない
+claude --dangerously-skip-permissions -p "${PROMPT}" 2>&1 | tee "${LOG_FILE}"
 
 EXIT_CODE=${PIPESTATUS[0]}
 
