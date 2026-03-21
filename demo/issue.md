@@ -34,28 +34,3 @@ InsightLog はすでにタスクごとに AI ツール利用（Claude / ChatGPT 
 **When** モーダルを開く
 **Then** 「まだデータがありません。タスクを記録して始めましょう 🚀」のメッセージを表示
 
-## 技術仕様
-
-### 新規ファイル
-- `src/lib/roiCalc.ts` — ROI 計算ロジック（純粋関数、副作用なし）
-- `src/components/report/RoiDashboard.tsx` — ROI ダッシュボードモーダルコンポーネント
-- `src/tests/roiCalc.test.ts` — `roiCalc.ts` の Vitest ユニットテスト（5ケース以上）
-
-### 既存ファイルへの変更
-- `src/components/layout/Header.tsx` — 「AI ROI」ボタンを追加
-- `src/pages/HomePage.tsx` — RoiDashboard モーダルの状態管理と遅延ロードを追加
-
-### デザイン制約
-- 既存の Tailwind CSS カラー変数（`primary-*` / `accent-*`）のみ使用
-- AIっぽいネオンカラー・過剰なグラデーションは禁止
-- モノトーン基調、Shadcn UI ライクな清潔感あるデザイン
-- 既存モーダルコンポーネントのレイアウトパターンを踏襲
-
-### テスト要件
-- `roiCalc.ts` の全関数をユニットテストでカバー
-- 境界値（タスク0件、AI使用0件、AI未使用0件）のテストを含む
-- `npm test` がパスすること
-
-## 完了チェックリスト
-
-完了後、`demo/feature_list.json` の各 `completed` を `true` に更新すること。

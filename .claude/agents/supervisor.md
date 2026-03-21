@@ -2,7 +2,7 @@
 name: supervisor
 description: "Ship-from-Issue パイプラインの監督エージェント。demo/feature_list.json のフェーズ定義を読み込み、依存関係 (depends_on) に従って各 Sub-agent を順次起動する。特定機能に依存しない汎用オーケストレーター。"
 tools: Bash, Read, Write, Agent
-model: sonnet
+model: opus
 ---
 
 # supervisor — パイプライン監督エージェント
@@ -65,6 +65,10 @@ while 未完了フェーズが存在する:
 - 現在のフェーズ ID とラベル
 - ブランチ名
 - Sub-agent が完了時に `feature_list.json` の自分のフェーズ status を `"done"` に更新すること
+
+**フェーズ固有の追加情報:**
+- `implement` 起動時: `demo/plan_output.md` の全内容をプロンプトに含める（planner が保存した実装計画書）
+- `review` 起動時: PR 番号または PR URL をプロンプトに含める（pr-creator が返した値）
 
 ---
 

@@ -7,9 +7,16 @@
   "completed_at": null,
   "phases": [
     {
+      "id": "plan",
+      "agent": "planner",
+      "depends_on": [],
+      "status": "pending",
+      "label": "実装計画策定（多役割: PM/Searcher/Architect/Devil）"
+    },
+    {
       "id": "implement",
       "agent": "implementer",
-      "depends_on": [],
+      "depends_on": ["plan"],
       "status": "pending",
       "label": "機能実装"
     },
@@ -50,10 +57,10 @@
     },
     {
       "id": "review",
-      "agent": "pr-reviewer",
+      "agent": "reviewer",
       "depends_on": ["pr"],
       "status": "pending",
-      "label": "PRレビュー"
+      "label": "PRレビュー（多役割: PM/quality/ux/test/Devil）"
     }
   ]
 }
