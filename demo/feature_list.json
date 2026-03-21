@@ -1,0 +1,94 @@
+{
+  "feature": "AI ROI ダッシュボード",
+  "issue": "demo/issue.md",
+  "github_issue": null,
+  "branch": "feat/ai-roi-dashboard",
+  "started_at": null,
+  "completed_at": null,
+  "items": [
+    {
+      "id": "1",
+      "phase": "実装",
+      "description": "src/lib/roiCalc.ts の作成（ROI計算純粋関数）",
+      "completed": false
+    },
+    {
+      "id": "2",
+      "phase": "実装",
+      "description": "src/components/report/RoiDashboard.tsx の作成（モーダルUI + Recharts）",
+      "completed": false
+    },
+    {
+      "id": "3",
+      "phase": "実装",
+      "description": "Header.tsx に「AI ROI」ボタンを追加",
+      "completed": false
+    },
+    {
+      "id": "4",
+      "phase": "実装",
+      "description": "HomePage.tsx に RoiDashboard の状態管理・遅延ロードを追加",
+      "completed": false
+    },
+    {
+      "id": "5",
+      "phase": "UT",
+      "description": "src/tests/roiCalc.test.ts の作成（境界値含む全ケース）",
+      "completed": false
+    },
+    {
+      "id": "6",
+      "phase": "UT",
+      "description": "npm test -- --run が全パス",
+      "completed": false
+    },
+    {
+      "id": "7",
+      "phase": "ビルド",
+      "description": "npm run build が TypeScript 型エラー0件でパス",
+      "completed": false
+    },
+    {
+      "id": "8",
+      "phase": "E2E",
+      "description": "e2e/roi-dashboard.spec.ts の Playwright テストを設計（5ケース以上）",
+      "completed": false
+    },
+    {
+      "id": "9",
+      "phase": "E2E",
+      "description": "npm run test:e2e が全テストパス",
+      "completed": false
+    },
+    {
+      "id": "10",
+      "phase": "E2E",
+      "description": "GIF または スクリーンショットを demo/screenshots/ に保存",
+      "completed": false
+    },
+    {
+      "id": "11",
+      "phase": "コミット",
+      "description": "変更を論理的な粒度に分割してコミット（日本語メッセージ）",
+      "completed": false
+    },
+    {
+      "id": "12",
+      "phase": "コミット",
+      "description": "git push origin feat/ai-roi-dashboard",
+      "completed": false
+    },
+    {
+      "id": "13",
+      "phase": "PR",
+      "description": "gh pr create でPR作成（GIF/スクリーンショット添付、日本語本文）",
+      "completed": false
+    },
+    {
+      "id": "14",
+      "phase": "PR",
+      "description": "PR自動レビュー（ship-pr-reviewer による承認またはコメント）",
+      "completed": false
+    }
+  ]
+}

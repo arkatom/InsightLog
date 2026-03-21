@@ -1,0 +1,8 @@
+# Claude Progress Log - Ship-from-Issue PRファクトリー
+
+## セッション記録
+
+このファイルは Claude Code が自律実行中に進捗を記録するログです。
+作業を再開する際にここから状況を把握してください。
+
+---
