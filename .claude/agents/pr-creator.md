@@ -33,7 +33,36 @@ ls demo/screenshots/test-results/*.webm 2>/dev/null | head -3
 echo "${ISSUE_NUMBER:-なし}"
 ```
 
-### 2. PR 本文の構成
+### 2. スクリーンショット・ビデオをブランチにコミット
+
+**重要: ローカルパスの Markdown 記法では GitHub 上で画像が表示されない。必ず以下の手順で GitHub にアップロードすること。**
+
+```bash
+# スクリーンショット・ビデオをステージング
+git add demo/screenshots/*.png 2>/dev/null || true
+git add demo/screenshots/test-results/*.webm 2>/dev/null || true
+
+# 証跡がある場合のみコミット
+git diff --cached --quiet || git commit -m "docs: E2Eテストのスクリーンショット・ビデオ証跡を追加"
+
+# リモートにプッシュ
+git push origin <ブランチ名>
+```
+
+### 3. GitHub URL の生成
+
+コミット後、以下の形式で GitHub blob URL を構築する:
+
+```bash
+# リポジトリ情報の取得
+REPO_URL=$(gh repo view --json url -q .url)
+BRANCH=$(git branch --show-current)
+
+# スクリーンショット URL の生成
+# 形式: ${REPO_URL}/blob/${BRANCH}/demo/screenshots/ファイル名.png?raw=true
+```
+
+### 4. PR 本文の構成
 
 ```markdown
 ## 概要
@@ -43,9 +72,14 @@ echo "${ISSUE_NUMBER:-なし}"
 [変更ファイルごとに何をしたか箇条書き]
 
 ## スクリーンショット
-[demo/screenshots/ の PNG を Markdown image で埋め込む]
+[各 PNG を GitHub blob URL で埋め込む]
+![説明](${REPO_URL}/blob/${BRANCH}/demo/screenshots/ファイル名.png?raw=true)
 
-## テスト
+## E2E テスト録画
+[各 .webm の GitHub blob URL をリンクとして記載]
+- [テスト名](${REPO_URL}/blob/${BRANCH}/demo/screenshots/test-results/ファイル名.webm)
+
+## テスト結果
 - Vitest: [結果]
 - Playwright E2E: [結果]
 - TypeScript: 型エラー 0件
@@ -56,19 +90,20 @@ echo "${ISSUE_NUMBER:-なし}"
 - [x] 全 E2E テストパス
 ```
 
-スクリーンショットは `![説明](demo/screenshots/ファイル名.png)` で埋め込む。
-
-### 3. gh pr create
+### 5. gh pr create
 
 ```bash
 gh pr create \
   --title "[変更概要]" \
   --base main \
   --head <ブランチ名> \
-  --body "..."
+  --body "$(cat <<'EOF'
+[上記テンプレートに沿った本文]
+EOF
+)"
 ```
 
-### 4. Issue クローズリンク
+### 6. Issue クローズリンク
 
 `ISSUE_NUMBER` が設定されている場合、PR 本文末尾に `Closes #<番号>` を追加する。
 

@@ -53,15 +53,42 @@ find demo/screenshots/test-results -name "*.webm" -o -name "*.png" | sort
 3. テストコードを修正して再実行
 4. 最大2回リトライし、それでも失敗する場合は失敗内容をまとめて報告する
 
-### 4. スクリーンショット確認
+### 4. スクリーンショット・ビデオの検証
 
-テスト内で撮影されたスクリーンショットが `demo/screenshots/` に存在することを確認:
+#### 4a. ファイル存在確認
 
 ```bash
-ls demo/screenshots/*.png 2>/dev/null | wc -l
+ls -la demo/screenshots/*.png 2>/dev/null
+ls -la demo/screenshots/test-results/*.webm 2>/dev/null
 ```
 
 1枚も存在しない場合は、テストコード内の `page.screenshot()` 呼び出しを確認する。
+
+#### 4b. スクリーンショットの内容確認（重要）
+
+**ファイルが存在するだけでは不十分。Read ツールで各スクリーンショットを実際に目視確認し、以下を検証する:**
+
+- 期待通りの画面・コンポーネントが表示されているか
+- エラー画面や白画面になっていないか
+- テストシナリオに対応した状態（モーダルが開いている、データが表示されている等）になっているか
+
+```
+Read: demo/screenshots/各ファイル.png  ← 画像として読み込んで確認
+```
+
+問題がある場合は `claude-progress.txt` に「スクリーンショット検証: [ファイル名] — [問題内容]」と記録し、テストコードの修正を検討する。
+
+#### 4c. ビデオ録画の確認
+
+`.webm` ファイルが期待されるテストケース数分存在するか確認する:
+
+```bash
+# テストケース数
+EXPECTED=$(grep -c 'test(' e2e/*.spec.ts 2>/dev/null || echo 0)
+# ビデオファイル数
+ACTUAL=$(ls demo/screenshots/test-results/*.webm 2>/dev/null | wc -l)
+echo "テストケース: ${EXPECTED}, ビデオ: ${ACTUAL}"
+```
 
 ---
 
