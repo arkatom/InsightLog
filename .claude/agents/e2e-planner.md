@@ -47,7 +47,11 @@ test.describe('[機能名]', () => {
 
   // acceptance criteria の各ケースを1テストに
   test('[Given/When/Then の概要]', async ({ page }) => {
-    // Arrange（前提条件）
+    // ━━━ Arrange: モックデータの投入（重要）━━━
+    // 機能がデータを読み取って表示する場合、テスト内でモックデータを投入する。
+    // 空の DB のまま撮ったスクリーンショットでは実装の外観を確認できない。
+    // → page.evaluate() 等で DB にデータを挿入してからUIを操作する。
+
     // Act（操作）
 
     // ━━━ 人間確認用スクリーンショット（重要）━━━
@@ -60,7 +64,44 @@ test.describe('[機能名]', () => {
 });
 ```
 
-### 4. 人間確認用スクリーンショットの設計ルール（最重要）
+### 4. モックデータの設計ルール（最重要）
+
+**データ表示系の機能は、テスト内でリアルなモックデータを投入してから撮影すること。**
+
+空のDBやデータなし状態のスクリーンショットだけでは、実装された外観を人間が確認できない。
+以下の2パターンを必ず両方テストする:
+
+#### パターンA: データあり状態（メイン）
+- 機能が想定する十分な量のモックデータを投入してからUIを操作する
+- テーブル・グラフ・カード・リスト等、データに依存するUIがすべて描画された状態で撮影する
+- モックデータは実際のユースケースに近い値にする（全部ゼロ、全部同じ値は避ける）
+
+```typescript
+// ✅ 正しい: モックデータ投入 → UI操作 → 撮影
+await page.evaluate(async () => {
+  // アプリの DB API を使ってデータを投入（実装に合わせて変更）
+  const { db } = await import('/src/lib/db.ts');
+  await db.tasks.bulkAdd([
+    { id: '1', title: 'タスクA', usedAi: true, duration: 30, /* ... */ },
+    { id: '2', title: 'タスクB', usedAi: false, duration: 60, /* ... */ },
+    // 機能が想定するデータパターンを網羅
+  ]);
+});
+await page.reload();
+await page.waitForLoadState('networkidle');
+// → UI操作 → スクリーンショット
+```
+
+**モックデータの設計指針:**
+- DB のスキーマと型定義を Read で確認し、必須フィールドを漏らさない
+- 機能が「比較」「集計」「ランキング」を行う場合、差が出る多様なデータを入れる
+- 日付系フィールドがある場合は、テスト実行日基準の相対日付を使う
+
+#### パターンB: データなし/不足状態（サブ）
+- 空状態・エラー状態の表示を確認するテストも必要
+- ただしこちらは「空状態の表示が正しいこと」の証拠であり、メインのスクリーンショットではない
+
+### 5. 人間確認用スクリーンショットの設計ルール
 
 **PRレビュワー（人間）がスクリーンショットだけ見て「ちゃんと実装されている」と確認できる画像を撮ること。**
 
@@ -73,13 +114,13 @@ test.describe('[機能名]', () => {
 2. **モーダル・ポップアップは開いている状態で撮る**
    ```typescript
    // ✅ 正しい: モーダルが開いた状態でスクリーンショット
-   await page.getByRole('button', { name: 'AI ROI' }).click();
+   await page.getByRole('button', { name: '機能名' }).click();
    await page.waitForSelector('[role="dialog"]');
    await page.waitForTimeout(500); // アニメーション完了を待つ
    await page.screenshot({ path: 'demo/screenshots/02_modal_open.png' });
 
    // ❌ 間違い: スクリーンショットなしでモーダルを閉じてしまう
-   await page.getByRole('button', { name: 'AI ROI' }).click();
+   await page.getByRole('button', { name: '機能名' }).click();
    await expect(page.getByRole('dialog')).toBeVisible();
    // ← ここでスクリーンショットを撮っていない
    ```
@@ -92,14 +133,13 @@ test.describe('[機能名]', () => {
    ```
 
 4. **各受け入れ条件に対応する「証拠」スクリーンショットを撮る**
-   - 受け入れ条件: 「4つのKPIカードが表示される」 → KPIカードが全部見えている状態のスクリーンショット
-   - 受け入れ条件: 「棒グラフが表示される」 → グラフが描画された状態のスクリーンショット
-   - 受け入れ条件: 「空状態メッセージ」 → メッセージが表示されている状態のスクリーンショット
+   - 受け入れ条件ごとに、その条件が満たされていることを示すスクリーンショットを1枚以上撮る
+   - データ表示系は必ずモックデータが投入された状態で撮る
 
 5. **ファイル名は連番+説明で、PRで見たとき何の証拠かわかるようにする**
    ```
-   demo/screenshots/01_home_with_button.png       ← ホーム画面にボタンがある
-   demo/screenshots/02_modal_open_with_kpi.png    ← モーダルが開いてKPIカードが見える
+   demo/screenshots/01_home_with_button.png           ← ホーム画面にボタンがある
+   demo/screenshots/02_feature_with_data.png          ← データが入った状態の機能画面
    demo/screenshots/03_category_chart.png          ← カテゴリ別グラフが表示されている
    demo/screenshots/04_empty_state.png             ← データなし時のメッセージ
    ```
