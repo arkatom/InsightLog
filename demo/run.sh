@@ -24,8 +24,10 @@ DEMO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "${DEMO_DIR}/.." && pwd)"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 LOG_FILE="${DEMO_DIR}/logs/session_${TIMESTAMP}.log"
+RAW_JSON_LOG="${DEMO_DIR}/logs/raw_${TIMESTAMP}.jsonl"
 ISSUE_NUMBER_FILE="${DEMO_DIR}/github_issue_number.txt"
 FALLBACK_ISSUE="${DEMO_DIR}/fallback/issue.md"
+STREAM_PARSER="${DEMO_DIR}/stream-parser.py"
 
 mkdir -p "${DEMO_DIR}/logs" "${DEMO_DIR}/screenshots"
 
@@ -160,19 +162,22 @@ export ISSUE_NUMBER="${ISSUE_NUMBER}"
 echo "📂 ワークツリー: ${WORKTREE_PATH}"
 echo "   進捗確認: tail -f ${WORKTREE_PATH}/claude-progress.txt"
 echo ""
-echo "Claude Code を起動中..."
+echo "📊 ログ出力:"
+echo "   整形ログ（ターミナル表示）: リアルタイム"
+echo "   生JSONログ（後から分析用）: ${RAW_JSON_LOG}"
+echo "   テキストログ:               ${LOG_FILE}"
+echo ""
+echo "Claude Code を起動中（stream-json モード）..."
 echo ""
 
-# バックグラウンドで起動（--worktree demo-run で固定パスにワークツリーを作成）
-claude --worktree "${WORKTREE_NAME}" --dangerously-skip-permissions -p "${PROMPT}" \
-  > "${LOG_FILE}" 2>&1 &
-CLAUDE_PID=$!
+# ── ワークツリー作成をポーリングして feature_list.json をコピーするバックグラウンドジョブ ──
+(
+  until [[ -d "${WORKTREE_PATH}/demo" ]]; do sleep 0.5; done
+  cp "${DEMO_DIR}/feature_list.json" "${WORKTREE_PATH}/demo/feature_list.json"
+) &
+COPY_PID=$!
 
-# ログをリアルタイム表示
-tail -f "${LOG_FILE}" &
-TAIL_PID=$!
-
-# claude-progress.txt が作成されたらリアルタイムで追跡
+# ── claude-progress.txt をリアルタイム追跡 ──
 (
   until [[ -f "${WORKTREE_PATH}/claude-progress.txt" ]]; do sleep 1; done
   echo ""
@@ -181,16 +186,19 @@ TAIL_PID=$!
 ) &
 PROGRESS_TAIL_PID=$!
 
-# ワークツリーの demo/ が作成されるまでポーリング（0.5秒間隔）
-until [[ -d "${WORKTREE_PATH}/demo" ]]; do sleep 0.5; done
+# ── Claude Code を stream-json モードで起動 ──
+# --output-format stream-json: 全イベント（Agent起動・ツール呼び出し・思考）をJSON出力
+# --verbose: 詳細イベントを含む
+# stream-parser.py: JSONストリームを整形表示 + 生ログ保存
+claude --worktree "${WORKTREE_NAME}" --dangerously-skip-permissions \
+  -p "${PROMPT}" \
+  --output-format stream-json \
+  --verbose \
+  2>"${LOG_FILE}" \
+  | python3 "${STREAM_PARSER}" --raw-log "${RAW_JSON_LOG}"
+EXIT_CODE=${PIPESTATUS[0]}
 
-# gitignore 済みの feature_list.json をワークツリーに持ち込む
-cp "${DEMO_DIR}/feature_list.json" "${WORKTREE_PATH}/demo/feature_list.json"
-
-# 完了まで待機
-wait "${CLAUDE_PID}"
-EXIT_CODE=$?
-kill "${TAIL_PID}" 2>/dev/null || true
+kill "${COPY_PID}" 2>/dev/null || true
 kill "${PROGRESS_TAIL_PID}" 2>/dev/null || true
 
 echo ""
@@ -200,17 +208,22 @@ if [[ ${EXIT_CODE} -eq 0 ]]; then
   echo ""
   echo "✅ デモ完了！"
   echo ""
-  echo "  📂 ワークツリー（実装確認）:       ${WORKTREE_PATH}"
-  echo "  📸 スクリーンショット・ビデオ: ${DEMO_DIR}/screenshots/"
-  echo "  📝 セッションログ:             ${LOG_FILE}"
-  echo "  📊 進捗メモ:                  ${WORKTREE_PATH}/claude-progress.txt"
+  echo "  📂 ワークツリー（実装確認）:         ${WORKTREE_PATH}"
+  echo "  📸 スクリーンショット・ビデオ:       ${DEMO_DIR}/screenshots/"
+  echo "  📝 テキストログ（stderr）:           ${LOG_FILE}"
+  echo "  📊 生JSONログ（全イベント記録）:     ${RAW_JSON_LOG}"
+  echo "  📊 進捗メモ:                        ${WORKTREE_PATH}/claude-progress.txt"
   echo ""
-  echo "  PR URL はログの末尾を確認してください ↑"
+  echo "  🔍 ログ再生（後から確認）:"
+  echo "     cat ${RAW_JSON_LOG} | python3 ${STREAM_PARSER}"
+  echo ""
+  echo "  PR URL はターミナル出力を確認してください ↑"
   echo ""
   echo "  ワークツリー削除: git worktree remove .claude/worktrees/${WORKTREE_NAME}"
 else
   echo ""
   echo "⚠️  エラーで終了しました（終了コード: ${EXIT_CODE}）"
-  echo "  ログ:  ${LOG_FILE}"
-  echo "  進捗: ${WORKTREE_PATH}/claude-progress.txt"
+  echo "  テキストログ:  ${LOG_FILE}"
+  echo "  生JSONログ:    ${RAW_JSON_LOG}"
+  echo "  進捗:          ${WORKTREE_PATH}/claude-progress.txt"
 fi
