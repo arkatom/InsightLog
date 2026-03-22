@@ -1,5 +1,5 @@
 ---
-description: "demo/feature_list.json のフェーズ定義を読み込み、Ship-from-Issue パイプラインを実行する。トップレベルが supervisor を兼ね、全 Sub-agent を直接起動する。"
+description: "demo/feature_list.json のフェーズ定義を読み込み、Ship-from-Issue パイプラインを実行する。トップレベルが supervisor を兼ね、Skill と Agent を使い分けて全フェーズを実行する。"
 ---
 
 # Ship-from-Issue パイプライン
@@ -9,7 +9,7 @@ description: "demo/feature_list.json のフェーズ定義を読み込み、Ship
 ## 重要な制約
 
 Claude Code の Agent ツールで起動されたサブエージェントは、さらに Agent ツールを使うことができない（ネスト不可）。
-そのため、**あなた（トップレベル）が直接すべての Agent を起動する必要がある。**
+そのため、**あなた（トップレベル）が直接すべての Agent / Skill を起動する必要がある。**
 
 ## 実行手順
 
@@ -33,37 +33,49 @@ GitHub Issue が設定されている場合:
 ### 3. フェーズ実行
 
 `feature_list.json` の `phases` を依存関係に従って実行する。
-**各フェーズの実行方法は `.claude/agents/<agent名>.md` を読んで従う。**
 
-ただし以下のルールを守る:
+#### plan フェーズ → `Skill("planner-team")` を実行
 
-#### plan フェーズ（Agent Teams）
+Skill ツールで `planner-team` スキルを実行する。
+スキルの指示に従い、Agent Teams（Searcher → Architect → Devil）を起動して計画を策定する。
+完了後、`demo/plan_output.md` が生成されていることを確認する。
 
-`.claude/agents/planner.md` を読み、Agent Teams 方式で実行する:
+#### implement フェーズ → Agent 起動
 
-1. **あなた自身が PM** として Issue と CLAUDE.md を読む
-2. **Agent ツールで Searcher を起動** → コードベース調査レポートを受け取る
-3. **Agent ツールで Architect を起動** → Searcher の結果を渡して計画草案を受け取る
-4. **Agent ツールで Devil を起動** → 計画草案を渡して批判を受け取る
-5. Devil が差し戻したら Architect → Devil を再ループ（最大3回）
-6. 承認済み計画を `demo/plan_output.md` に保存
+`.claude/agents/implementer.md` を読み、Agent ツールで implementer を起動する。
+プロンプトに `demo/plan_output.md` の全内容を含める。
 
-#### implement / unit-test / e2e-plan / e2e-run / commit / pr フェーズ
+#### unit-test / e2e-plan フェーズ → Agent 並行起動
 
-各フェーズの `.claude/agents/<agent名>.md` を読み、**Agent ツールで1つずつ起動する。**
-各 Agent には Issue の概要、feature_list.json、ブランチ名、完了時の feature_list.json 更新指示を渡す。
+`.claude/agents/test-writer.md` と `.claude/agents/e2e-planner.md` を読み、
+2つの Agent を**並行で**起動する。
 
-#### review フェーズ（Agent Teams）
+#### e2e-run フェーズ → Agent 起動
 
-`.claude/agents/reviewer.md` を読み、Agent Teams 方式で実行する:
+`.claude/agents/e2e-runner.md` を読み、Agent ツールで e2e-runner を起動する。
 
-1. **あなた自身が PM** として PR の差分と Issue の受け入れ条件を取得する
-2. **Agent ツールで quality-reviewer / ux-reviewer / test-reviewer を並行起動**（各プロンプトに「日本語で記述」を含める）
-3. 3つの結果を自分（PM）が統合レポートにまとめる
-4. **Agent ツールで Devil を起動** → 統合レポートを渡して批判を受け取る
-5. 最終レビューを `gh pr review` で GitHub に投稿（日本語）
+#### commit フェーズ → Agent 起動
 
-### 4. 完了処理
+`.claude/agents/committer.md` を読み、Agent ツールで committer を起動する。
+
+#### pr フェーズ → Agent 起動
+
+`.claude/agents/pr-creator.md` を読み、Agent ツールで pr-creator を起動する。
+完了後、PR の URL を受け取る。
+
+#### review フェーズ → `Skill("reviewer-team")` を実行
+
+Skill ツールで `reviewer-team` スキルを実行する。
+スキルの指示に従い、Agent Teams（quality/ux/test → Devil）を起動してレビューする。
+PR 番号をスキルに渡すため、Skill 実行前に PR 番号を明示する。
+
+### 4. 各フェーズ完了時の処理
+
+各フェーズが完了したら:
+- `feature_list.json` の該当フェーズの `status` を `"done"` に更新する
+- `claude-progress.txt` に完了記録を追記する
+
+### 5. パイプライン完了
 
 全フェーズが done になったら:
 - `feature_list.json` の `completed_at` を更新
