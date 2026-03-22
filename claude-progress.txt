@@ -6,3 +6,69 @@
 作業を再開する際にここから状況を把握してください。
 
 ---
+
+### [2026-03-22] Pipeline Started
+- Feature: AI ROI ダッシュボード機能の追加 (Issue #3)
+- Branch: feat/issue-3
+- Phase: plan (実装計画策定)
+
+### [2026-03-22] Plan Phase Complete
+- 計画策定完了（Devil 2回サイクル: 1回目差し戻し5件→修正→2回目承認）
+- 出力: demo/plan_output.md
+
+### [2026-03-22] Implement Phase Complete
+- 実装完了: AI ROI ダッシュボード機能
+- 作成ファイル:
+  - src/types/statistics.ts (RoiSummary, CategoryAiUsage, RoiScoreLabel 型追加)
+  - src/lib/roiCalc.ts (新規作成)
+  - src/components/report/RoiDashboard.tsx (新規作成)
+- 変更ファイル:
+  - src/components/layout/Header.tsx (onRoiClick プロップ + TrendingUp ボタン追加)
+  - src/pages/HomePage.tsx (RoiDashboard lazy import + isRoiOpen 状態追加)
+  - src/components/statistics/CategoryChart.tsx (既存の型エラー修正)
+
+### [2026-03-22] Unit Test Phase Complete
+- UT完了: roiCalc.test.ts, 22件パス
+
+### [2026-03-22] E2E設計完了: e2e/roi-dashboard.spec.ts, 9件, スクリーンショット9枚
+- テスト構成:
+  - データあり（AI使用3件 + 未使用3件のモックデータ投入）: 5テスト
+    - 01_home_with_roi_button.png: ヘッダーにAI ROIボタンが存在する
+    - 02_roi_dashboard_open.png: モーダルが開いた状態（タイトル確認）
+    - 03_roi_dashboard_four_cards.png: 4カード全表示（AI活用率・削減時間・カテゴリ・スコア）
+    - 04_roi_usage_rate.png: AI活用率数値（0-100%）表示
+    - 05_roi_category_chart.png: カテゴリ別AI活用率棒グラフ表示
+    - 06_roi_score_label.png: ROIスコアラベル（Excellent/Good/Fair/N/A）表示
+    - 07_modal_closed.png: Xボタンでモーダルを閉じた後のホーム画面
+  - データなし（タスク0件）: 1テスト
+    - 08_roi_empty_state.png: 空状態メッセージ表示
+  - AI使用タスクのみ（未使用0件）: 1テスト
+    - 09_roi_ai_only_empty_state.png: isEmpty=trueによる空状態メッセージ表示
+- セレクター設計: page.getByTitle('AI ROI') でボタン特定（title="AI ROI"属性を使用）
+- モックデータ: IndexedDB を直接操作（Dexie経由なし）、今週の日付で createdAt を設定
+
+### [2026-03-22] E2E完了: 9件パス, ビデオ9件
+- 修正内容: ESM環境で __dirname を fileURLToPath(import.meta.url) に変換して対応
+- モックデータ修正: ISO文字列 → Date オブジェクトに変換して IndexedDB に格納（date-fns v4 互換）
+- 週境界対応: isThisWeek(weekStartsOn=0) に合わせ今週の日曜始まりのタイムスタンプを使用
+- セレクター修正: AI活用率カードを div.bg-accent-50 クラスで一意に特定
+
+スクリーンショット検証:
+  01_home_with_roi_button.png — ヘッダーに「AI ROI」ボタン（TrendingUpアイコン）が確認できる。完了タスク6件も表示されモックデータの反映を確認。
+  02_roi_dashboard_open.png — モーダルが開いており、4カード（AI活用率50%・推定時間削減96分・最も効果的なカテゴリ:実装・AI ROIスコア:55 Good）とカテゴリ別棒グラフが表示されている。
+  03_roi_dashboard_four_cards.png — 4カード全てが表示されている（02と同内容）。
+  04_roi_usage_rate.png — AI活用率カードに「50%」が表示されている（AI使用3件/合計6件）。
+  05_roi_category_chart.png — カテゴリ別AI活用率の棒グラフが描画されており、設計・実装カテゴリが100%で表示されている。
+  06_roi_score_label.png — AI ROI スコアカードに「55」と「Good」バッジが表示されている。
+  07_modal_closed.png — モーダルが閉じてホーム画面が表示されている（Xボタンで正常に閉じられた証拠）。
+  08_roi_empty_state.png — データなし状態でモーダルが開き「まだデータがありません。タスクを記録して始めましょう」が表示されている。
+  09_roi_ai_only_empty_state.png — AI使用タスクのみの場合も同様の空状態メッセージが表示されている。
+
+### [2026-03-22] Commit Phase Complete
+コミット完了: 6件, push成功
+- chore(claude): settings.local.json を更新
+- feat(roi): AI ROI ダッシュボード機能を追加
+- test(roi): roiCalc ユニットテスト22件を追加
+- test(e2e): ROI ダッシュボード E2Eテスト9件を追加
+- chore(build): dev-dist の SW・Workbox ファイルを更新
+- chore(demo): feature_list.json の commit フェーズを done に更新
