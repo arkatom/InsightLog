@@ -17,12 +17,14 @@ import { formatMinutes } from '@/lib/time';
 const StatsModal = lazy(() => import('@/components/statistics/StatsModal').then(m => ({ default: m.StatsModal })));
 const SettingsModal = lazy(() => import('@/components/settings/SettingsModal').then(m => ({ default: m.SettingsModal })));
 const ReportModal = lazy(() => import('@/components/report/ReportModal').then(m => ({ default: m.ReportModal })));
+const RoiDashboard = lazy(() => import('@/components/report/RoiDashboard').then(m => ({ default: m.RoiDashboard })));
 
 export function HomePage() {
   const [showTaskList, setShowTaskList] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showReports, setShowReports] = useState(false);
+  const [showRoi, setShowRoi] = useState(false);
   const { currentCycle } = useTimer();
   const stats = useStatistics('today');
   const { settings } = useSettings();
@@ -35,6 +37,7 @@ export function HomePage() {
         onStatsClick={() => setShowStats(true)}
         onSettingsClick={() => setShowSettings(true)}
         onReportClick={() => setShowReports(true)}
+        onRoiClick={() => setShowRoi(true)}
       />
 
       {showTimer && (
@@ -87,6 +90,11 @@ export function HomePage() {
       {/* レポートモーダル（遅延ロード） */}
       <Suspense fallback={null}>
         {showReports && <ReportModal isOpen={showReports} onClose={() => setShowReports(false)} />}
+      </Suspense>
+
+      {/* AI ROI ダッシュボード（遅延ロード） */}
+      <Suspense fallback={null}>
+        {showRoi && <RoiDashboard isOpen={showRoi} onClose={() => setShowRoi(false)} />}
       </Suspense>
     </Container>
   );
