@@ -93,9 +93,10 @@ description: 実装計画策定専門チーム。PM/Searcher/Architect/Devilの4
 
 ## 実行ルール
 
-- **自律実行**: ユーザーの介入を待たず、PM が各ロールを順番に演じてサイクルを回す
+- **Agent Teams 必須**: Searcher / Architect / Devil は必ず Agent ツールで別プロセスとして起動すること。PM が各ロールを「演じる」のではなく、独立したエージェントとして起動する
+- **PM は自分自身**: コンテキスト読み込み・Agent 起動・結果の中継・最終出力は PM（planner 自身）が行う
 - **再帰的検証**: 重大な問題が解消するまで Devil → Architect → Devil のループを繰り返す
 - **根拠必須**: すべての指摘・判断は Issue の受け入れ条件またはコードパスに基づく
 - **停止条件**: Devil が重大な問題なしと判定し、plan_output.md が保存された時のみ完了
 
-チームを起動してください。
+Agent Teams を起動してください。
