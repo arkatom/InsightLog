@@ -36,9 +36,9 @@ GitHub Issue が設定されている場合:
 
 #### plan フェーズ → `Skill("planner-team")` を実行
 
-Skill ツールで `planner-team` スキルを実行する。
-スキルの指示に従い、Agent Teams（Searcher → Architect → Devil）を起動して計画を策定する。
-完了後、`demo/plan_output.md` が生成されていることを確認する。
+`Skill("planner-team")` を実行する。
+スキルが Agent Teams（Searcher → Architect → Devil）を自律的に起動し、計画を策定する。
+スキル内で `demo/plan_output.md` の保存と `feature_list.json` の更新が行われる。
 
 #### implement フェーズ → Agent 起動
 
@@ -65,13 +65,14 @@ Skill ツールで `planner-team` スキルを実行する。
 
 #### review フェーズ → `Skill("reviewer-team")` を実行
 
-Skill ツールで `reviewer-team` スキルを実行する。
-スキルの指示に従い、Agent Teams（quality/ux/test → Devil）を起動してレビューする。
-PR 番号をスキルに渡すため、Skill 実行前に PR 番号を明示する。
+Skill 実行前に PR 番号を確認し、会話内で明示してから `Skill("reviewer-team")` を実行する。
+スキルが Agent Teams（quality/ux/test → Devil）を自律的に起動し、レビューする。
+スキル内で GitHub へのレビュー投稿と `feature_list.json` の更新が行われる。
 
 ### 4. 各フェーズ完了時の処理
 
-各フェーズが完了したら:
+**plan / review フェーズ**: Skill 内で `feature_list.json` と `claude-progress.txt` が更新される。追加の更新は不要。
+**その他のフェーズ**: Agent 完了後に自分で以下を行う:
 - `feature_list.json` の該当フェーズの `status` を `"done"` に更新する
 - `claude-progress.txt` に完了記録を追記する
 
