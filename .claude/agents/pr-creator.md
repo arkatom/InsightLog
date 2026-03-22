@@ -64,6 +64,8 @@ BRANCH=$(git branch --show-current)
 
 ### 4. PR 本文の構成
 
+**最重要: スクリーンショットは「実装確認」セクションに貼り、レビュワーが画像だけで実装を確認できるようにする。**
+
 ```markdown
 ## 概要
 [Issue から1〜2文で要約]
@@ -71,9 +73,15 @@ BRANCH=$(git branch --show-current)
 ## 変更内容
 [変更ファイルごとに何をしたか箇条書き]
 
-## スクリーンショット
-[各 PNG を GitHub blob URL で埋め込む]
-![説明](${REPO_URL}/blob/${BRANCH}/demo/screenshots/ファイル名.png?raw=true)
+## 実装確認（スクリーンショット）
+
+各受け入れ条件に対応するスクリーンショット:
+
+| 受け入れ条件 | スクリーンショット |
+|---|---|
+| [条件1の説明] | ![条件1](${REPO_URL}/blob/${BRANCH}/demo/screenshots/01_xxx.png?raw=true) |
+| [条件2の説明] | ![条件2](${REPO_URL}/blob/${BRANCH}/demo/screenshots/02_xxx.png?raw=true) |
+| ... | ... |
 
 ## E2E テスト録画
 [各 .webm の GitHub blob URL をリンクとして記載]
@@ -88,6 +96,7 @@ BRANCH=$(git branch --show-current)
 - [x] TypeScript 型エラー 0件
 - [x] 全ユニットテストパス
 - [x] 全 E2E テストパス
+- [x] 実装確認スクリーンショット添付済み
 ```
 
 ### 5. gh pr create
