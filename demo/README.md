@@ -70,7 +70,25 @@ supervisor（opus）がパイプラインを管理
 [review]    reviewer（opus）— quality / UX / テスト の3観点 + Devil's Advocate でレビュー
 ```
 
-進捗はリアルタイムで確認できます:
+### リアルタイム表示
+
+実行中、ターミナルにはエージェントの全活動が整形表示されます:
+
+```
+[14:23:01] 🏁 セッション開始 (abc1234…)
+──────────────────────────────────────────────────────
+[14:23:05] 🚀 Agent: planner — spawn  実装計画を策定
+[14:23:12] 🔧 Tool: Read  src/components/layout/Header.tsx
+[14:23:12]    ✓ Read  export function Header() { ...
+[14:23:15] 💭 既存のヘッダーにボタンを追加する形で実装すれば…
+[14:24:01] 🚀 Agent: implementer — spawn  ROI機能を実装
+[14:25:30] 🔧 Tool: Bash  npm run build
+[14:25:35]    ✓ Bash  Build succeeded
+[14:26:00] 🚀 Agent: test-writer — spawn  ユニットテスト作成
+[14:26:00] 🚀 Agent: e2e-planner — spawn  E2Eテスト設計
+```
+
+進捗メモも別途確認できます:
 
 ```bash
 # 別ターミナルで
@@ -85,12 +103,21 @@ tail -f claude-progress.txt
 
 | 成果物 | 場所 |
 |--------|------|
-| 作成された PR | ログ末尾の URL |
+| 作成された PR | ターミナル出力の末尾 |
 | E2E 動画（.webm） | `demo/screenshots/test-results/` |
 | Playwright レポート | `demo/screenshots/playwright-report/index.html` |
-| セッションログ | `demo/logs/session_<タイムスタンプ>.log` |
+| テキストログ（stderr） | `demo/logs/session_<タイムスタンプ>.log` |
+| 生JSONログ（全イベント） | `demo/logs/raw_<タイムスタンプ>.jsonl` |
 | 実装計画書 | `demo/plan_output.md` |
 | 進捗記録 | `claude-progress.txt` |
+
+### ログの再生
+
+生JSONログを使えば、実行後いつでもエージェントの活動を再生できます:
+
+```bash
+cat demo/logs/raw_20260322_142300.jsonl | python3 demo/stream-parser.py
+```
 
 ---
 
@@ -100,12 +127,13 @@ tail -f claude-progress.txt
 demo/
 ├── README.md               # このファイル
 ├── run.sh                  # デモ起動スクリプト
+├── stream-parser.py        # stream-json 整形表示パーサー（ログ再生にも使用）
 ├── pipeline.json           # フェーズ DAG テンプレート（git 管理・変更不要）
 ├── feature_list.json       # 実行時に run.sh が生成（gitignore・触らない）
 ├── plan_output.md          # 実行時に planner が生成する実装計画書（gitignore）
 ├── fallback/
 │   └── issue.md            # GitHub 未認証時のフォールバック仕様書
-├── logs/                   # セッションログ（gitignore）
+├── logs/                   # セッションログ + 生JSONログ（gitignore）
 └── screenshots/            # E2E スクリーンショット・動画・レポート（gitignore）
 ```
 
