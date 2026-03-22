@@ -6,3 +6,28 @@
 作業を再開する際にここから状況を把握してください。
 
 ---
+
+## 2026-03-22T03:43:30Z パイプライン開始
+Issue: Feature Request: AI ROI ダッシュボード機能の追加
+フェーズ: plan -> implement -> (unit-test, e2e-plan) -> e2e-run -> commit -> pr -> review
+
+### [2026-03-22T03:44:00Z] Phase: plan - 完了
+実装計画書を demo/plan_output.md に出力。5ファイルの実装計画を策定。
+
+### [2026-03-22T03:45:00Z] Phase: implement - 完了
+新規作成: src/lib/roiCalc.ts, src/hooks/useRoiDashboard.ts, src/components/report/RoiDashboard.tsx
+修正: src/components/layout/Header.tsx (AI ROIボタン追加), src/pages/HomePage.tsx (RoiDashboard統合)
+修正: src/components/statistics/CategoryChart.tsx (TypeScriptエラー修正)
+ビルド確認済み。
+
+### [2026-03-22T03:49:30Z] Phase: unit-test - 完了
+作成: src/tests/unit/roiCalc.test.ts (11テストケース)
+全28ユニットテストがパス。
+
+### [2026-03-22T03:50:00Z] Phase: e2e-plan - 完了
+E2Eテスト設計完了: e2e/roi-dashboard.spec.ts (5テストケース)
+- ボタン表示、データなし時メッセージ、4カード表示、グラフ表示、モーダル閉じる
+
+### [2026-03-22T03:52:00Z] Phase: e2e-run - 完了
+Playwright E2Eテスト5件全パス（ビデオ録画付き）。
+スクリーンショット: demo/screenshots/ に5枚保存。
