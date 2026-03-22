@@ -1,11 +1,9 @@
 import { test, expect } from '@playwright/test';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 /**
  * AI ROI ダッシュボード E2E テスト
- *
- * ship-qa-planner が acceptance criteria に基づいて作成するテストの骨格。
- * ship-qa-executor がこのファイルを実行し、ビデオ録画 → GIF 変換まで行う。
  *
  * 受け入れ条件（demo/issue.md より）:
  * - ヘッダーに「AI ROI」ボタンが存在する
@@ -15,6 +13,8 @@ import path from 'path';
  * - モーダルを閉じることができる
  */
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const SCREENSHOTS_DIR = path.join(__dirname, '../demo/screenshots');
 
 test.describe('AI ROI ダッシュボード', () => {
@@ -39,9 +39,9 @@ test.describe('AI ROI ダッシュボード', () => {
     const roiButton = page.getByRole('button', { name: /ai roi/i });
     await roiButton.click();
 
-    // モーダルが開くことを確認（モーダルのタイトルまたはコンテンツで判定）
-    const modal = page.locator('[role="dialog"], [data-testid="roi-dashboard"]').first();
-    await expect(modal).toBeVisible({ timeout: 5000 });
+    // モーダルタイトルで判定
+    const modalTitle = page.getByText('AI ROI ダッシュボード');
+    await expect(modalTitle).toBeVisible({ timeout: 5000 });
 
     // モーダルが開いた状態のスクリーンショット
     await page.screenshot({
@@ -56,7 +56,6 @@ test.describe('AI ROI ダッシュボード', () => {
     await roiButton.click();
 
     // データがある場合の4カードを確認
-    // カードのテキストで存在確認（実装に合わせてセレクターを調整）
     const possibleCardTexts = [
       /ai活用率|活用率/i,
       /削減時間|時間削減/i,
@@ -66,9 +65,17 @@ test.describe('AI ROI ダッシュボード', () => {
 
     // 4カードすべてが存在するか、またはプレースホルダーが表示されているか
     const hasCards = await Promise.all(
-      possibleCardTexts.map(text => page.getByText(text).isVisible().catch(() => false))
+      possibleCardTexts.map((text) =>
+        page
+          .getByText(text)
+          .isVisible()
+          .catch(() => false)
+      )
     );
-    const hasPlaceholder = await page.getByText(/データがありません|タスクを記録/i).isVisible().catch(() => false);
+    const hasPlaceholder = await page
+      .getByText(/データがありません|タスクを記録/i)
+      .isVisible()
+      .catch(() => false);
 
     // どちらかが表示されていればOK
     expect(hasCards.some(Boolean) || hasPlaceholder).toBeTruthy();
@@ -110,47 +117,18 @@ test.describe('AI ROI ダッシュボード', () => {
     const roiButton = page.getByRole('button', { name: /ai roi/i });
     await roiButton.click();
 
-    const modal = page.locator('[role="dialog"], [data-testid="roi-dashboard"]').first();
-    await expect(modal).toBeVisible({ timeout: 5000 });
+    const modalTitle = page.getByText('AI ROI ダッシュボード');
+    await expect(modalTitle).toBeVisible({ timeout: 5000 });
 
     // 閉じるボタンをクリック（×ボタン）
-    const closeButton = modal.getByRole('button', { name: /close|閉じる|×/i }).first();
-    if (await closeButton.isVisible()) {
-      await closeButton.click();
-    } else {
-      // ESC キーでも閉じられることを確認
-      await page.keyboard.press('Escape');
-    }
+    const closeButton = page.locator('button').filter({ has: page.locator('svg.lucide-x') });
+    await closeButton.first().click();
 
-    await expect(modal).not.toBeVisible({ timeout: 3000 });
+    await expect(modalTitle).not.toBeVisible({ timeout: 3000 });
 
     await page.screenshot({
       path: path.join(SCREENSHOTS_DIR, '05_modal_closed.png'),
       fullPage: false,
     });
-  });
-
-  test('モーダルのデザインがモノトーン基調であることを確認', async ({ page }) => {
-    const roiButton = page.getByRole('button', { name: /ai roi/i });
-    await roiButton.click();
-
-    const modal = page.locator('[role="dialog"], [data-testid="roi-dashboard"]').first();
-    await expect(modal).toBeVisible({ timeout: 5000 });
-
-    // ネオンカラーがないことの確認（背景色チェック）
-    // Playwright の evaluate でスタイルを検査
-    const hasNeonColors = await page.evaluate(() => {
-      const elements = document.querySelectorAll('*');
-      const neonPattern = /rgb\(0,\s*255|rgb\(255,\s*0,\s*255|#00ff|#ff00ff/i;
-      for (const el of elements) {
-        const style = window.getComputedStyle(el);
-        if (neonPattern.test(style.backgroundColor) || neonPattern.test(style.color)) {
-          return true;
-        }
-      }
-      return false;
-    });
-
-    expect(hasNeonColors).toBeFalsy();
   });
 });

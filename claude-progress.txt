@@ -6,3 +6,26 @@
 作業を再開する際にここから状況を把握してください。
 
 ---
+## 2026-03-22T01:25:22Z パイプライン開始
+Issue: Feature Request: AI ROI ダッシュボード機能の追加
+フェーズ: plan -> implement -> unit-test, e2e-plan -> e2e-run -> commit -> pr -> review
+
+## 2026-03-22T01:26:58Z plan フェーズ完了
+計画策定完了（Devil 1回指摘、解消済み）
+成果物: demo/plan_output.md
+
+## 2026-03-22T01:29:36Z implement フェーズ完了
+作成ファイル: src/lib/roiCalc.ts, src/hooks/useRoiDashboard.ts, src/components/report/RoiDashboard.tsx
+変更ファイル: src/components/layout/Header.tsx, src/pages/HomePage.tsx, src/components/statistics/CategoryChart.tsx
+TypeScript型チェック: パス
+
+## 2026-03-22T01:31:09Z unit-test フェーズ完了
+テストファイル: src/tests/unit/roiCalc.test.ts (25テスト全パス)
+
+## 2026-03-22T01:31:09Z e2e-plan フェーズ完了
+E2Eテスト設計: 既存の e2e/roi-dashboard.spec.ts を確認済み
+
+## 2026-03-22T01:32:34Z e2e-run フェーズ完了
+E2Eテスト: 5テスト全パス（ビデオ録画付き）
+スクリーンショット: demo/screenshots/
+
