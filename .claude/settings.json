@@ -5,6 +5,7 @@
   "permissions": {
     "allow": [
       "Read",
+      "Write",
       "Bash(npm run build:*)",
       "Bash(npm run dev:*)",
       "Bash(npm run test:*)",
@@ -14,7 +15,8 @@
       "Bash(git push:*)",
       "Bash(git checkout:*)",
       "Bash(git merge:*)",
-      "Bash(git worktree:*)"
+      "Bash(git worktree:*)",
+      "Bash(claude /improve)"
     ]
   },
   "plansDirectory": "docs/plans/"
