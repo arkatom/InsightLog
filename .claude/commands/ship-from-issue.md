@@ -55,7 +55,7 @@ git checkout -b <ブランチ名>
 | **implement** | Agent: `implementer` | プロンプトに計画の全内容を含める |
 | **unit-test** | Agent: `test-writer` | e2e-plan と**並行起動** |
 | **e2e-plan** | Agent: `e2e-planner` | unit-test と**並行起動** |
-| **e2e-run** | Agent: `e2e-runner` | |
+| **e2e-run** | Agent: `e2e-runner` | Playwright MCP サーバーでブラウザ操作・スクリーンショット撮影 |
 | **commit** | Agent: `committer` | |
 | **pr** | Agent: `pr-creator` | 完了後 PR URL を受け取る |
 | **review** | `Skill("reviewer-team")` | 実行前に PR 番号を明示。Skill が Agent Teams を自律起動 |
