@@ -26,3 +26,9 @@
   - e2e/roi-dashboard.spec.ts: IndexedDB操作をバージョン指定なしに変更（VersionError回避）
   - e2e/roi-dashboard.spec.ts: getByText(/%/).first() に変更（strict mode violation回避）
   - src/components/ui/Modal.tsx: role="dialog" aria-modal="true" を追加（セレクター対応）
+- [COMMIT完了] コミット完了: 4件, push成功
+  - d2abe90 feat(roi): AI ROIダッシュボード機能を追加
+  - 535023f test(roi): ROI機能のユニットテストとE2Eテストを追加
+  - 94d0178 chore(demo): ROIダッシュボードのスクリーンショット・進捗ログを追加
+  - b64e55b chore(build): dev-dist の Service Worker ファイルを更新
+  push先: origin feat/issue-8
