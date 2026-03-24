@@ -6,6 +6,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     unzip \
     && rm -rf /var/lib/apt/lists/*
 
-# Claude Code をインストール（root として実行 → /usr/local/bin に配置）
-# USER node で実行すると /home/node/.local への書き込みが Docker layer を圧迫するため root で行う
-RUN curl -fsSL https://claude.ai/install.sh | bash
+# Claude Code のインストール（公式推奨のネイティブ版）
+# root権限でインストール後、全ユーザーからアクセス可能な /usr/local/bin に移動する
+RUN curl -fsSL https://claude.ai/install.sh | bash \
+    && mv /root/.local/bin/claude /usr/local/bin/claude \
+    && chmod +x /usr/local/bin/claude
