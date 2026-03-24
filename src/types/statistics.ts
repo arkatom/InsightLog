@@ -52,6 +52,33 @@ export interface DailyStats {
 export type DateRange = 'today' | 'week' | 'month' | 'all';
 
 /**
+ * ROI評価ラベル
+ */
+export type RoiLabel = 'Excellent' | 'Good' | 'Fair' | 'N/A';
+
+/**
+ * ROIサマリー
+ */
+export interface RoiSummary {
+  weeklyAiUsageRate: number; // 今週のAI活用率 (0-100%)
+  estimatedTimeSaved: number; // 推定時間削減 (分)
+  mostEffectiveCategory: string | null; // AI活用率が最も高いカテゴリ
+  roiScore: number; // ROIスコア (0-100)
+  roiLabel: RoiLabel; // 評価ラベル
+  hasEnoughData: boolean; // データ十分性フラグ
+}
+
+/**
+ * カテゴリ別AI活用統計
+ */
+export interface CategoryAiUsage {
+  category: string;
+  aiUsageRate: number; // AI活用率 (0-100%)
+  taskCount: number; // タスク数（分配カウント）
+  aiTaskCount: number; // AI使用タスク数（分配カウント）
+}
+
+/**
  * 全統計データ
  */
 export interface Statistics {
