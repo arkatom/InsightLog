@@ -32,3 +32,7 @@
   - 94d0178 chore(demo): ROIダッシュボードのスクリーンショット・進捗ログを追加
   - b64e55b chore(build): dev-dist の Service Worker ファイルを更新
   push先: origin feat/issue-8
+- [PR作成完了] PR作成完了: https://github.com/arkatom/InsightLog/pull/9
+  - タイトル: feat(roi): AI ROIダッシュボード機能を追加 (#8)
+  - ブランチ: feat/issue-8 → main
+  - スクリーンショット7枚・E2Eビデオ録画3件を本文に含む
