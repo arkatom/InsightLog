@@ -1,8 +1,28 @@
 # Claude Progress Log - Ship-from-Issue PRファクトリー
 
-## セッション記録
+## Issue #8: Feature Request: AI ROI ダッシュボード機能の追加
+## Branch: feat/issue-8
+## Started: 2026-03-24
 
-このファイルは Claude Code が自律実行中に進捗を記録するログです。
-作業を再開する際にここから状況を把握してください。
+### Phase Log
+- [START] Pipeline started
+- [PLAN] 計画策定完了（Devil 2回サイクル、1回差し戻し→修正→承認）→ demo/plan_output.md
+- [IMPLEMENT] 実装完了: src/types/statistics.ts, src/lib/roiCalc.ts, src/components/report/RoiCategoryChart.tsx, src/components/report/RoiDashboard.tsx, src/components/layout/Header.tsx, src/pages/HomePage.tsx, src/components/statistics/CategoryChart.tsx（ビルド成功・型エラー0件）
+- [UT完了] UT完了: roiCalc.test.ts, 41件パス（合計58件パス）
+- [E2E-PLAN] E2E設計完了: e2e/roi-dashboard.spec.ts, 7件, スクリーンショット7枚
+- [E2E完了] E2E完了: 7件パス, ビデオ7件
 
----
+スクリーンショット検証:
+  01_home_with_roi_button.png — ヘッダーにTrendingUpアイコンのAI ROIボタンが確認できる
+  02_roi_dashboard_with_data.png — モーダルが開いて4KPIカード（今週のAI活用率50%、推定時間削減80分、最も効果的なカテゴリ「開発」、AI ROIスコア76 Excellent）とカテゴリ別棒グラフが表示されている
+  03_roi_score_and_label.png — ROIスコア94とExcellentラベルが表示されている
+  04_roi_category_chart.png — カテゴリ別AI活用率グラフが描画されている（複数カテゴリの棒グラフ）
+  05_roi_empty_state.png — 「まだデータがありません。タスクを記録して始めましょう」メッセージが表示されている
+  06_roi_insufficient_data.png — AI使用のみデータ時のプレースホルダーが表示されている
+  07_modal_closed.png — モーダルが閉じてホーム画面に戻っている
+
+修正内容:
+  - e2e/roi-dashboard.spec.ts: __dirname → import.meta.url に修正（ES module対応）
+  - e2e/roi-dashboard.spec.ts: IndexedDB操作をバージョン指定なしに変更（VersionError回避）
+  - e2e/roi-dashboard.spec.ts: getByText(/%/).first() に変更（strict mode violation回避）
+  - src/components/ui/Modal.tsx: role="dialog" aria-modal="true" を追加（セレクター対応）
