@@ -6,3 +6,54 @@
 作業を再開する際にここから状況を把握してください。
 
 ---
+
+## Issue #3: AI ROI ダッシュボード機能の追加
+ブランチ: feat/issue-3-ai-roi-dashboard
+
+- [2026-03-23] パイプライン開始
+- [2026-03-23] Phase 1: Issue 取得完了
+- [2026-03-23] Phase 2: ブランチ作成完了
+- [2026-03-23] Phase 3: 計画策定完了（Devil 3回指摘、解消済み）→ plan_output.md
+- [2026-03-23] Phase 4: 実装完了（implement）
+
+## 実装完了: 作成/変更ファイル一覧
+
+### 作成ファイル
+- src/lib/roiCalc.ts
+- src/hooks/useRoiData.ts
+- src/components/report/RoiDashboard.tsx
+
+### 変更ファイル
+- src/components/layout/Header.tsx（onRoiClick prop 追加、TrendingUp ボタン追加）
+- src/pages/HomePage.tsx（showRoiDashboard state、RoiDashboard lazy import、Suspense 追加）
+- src/components/statistics/CategoryChart.tsx（既存の Recharts formatter 型エラー修正）
+
+### ビルド確認
+- npx tsc --noEmit: エラー 0 件
+- npm run build: 成功
+
+- [2026-03-23] Phase 5 (unit-test): UT完了: roiCalc.test.ts, 28件パス（合計 45件パス）
+  - vitest.config.ts に exclude: ['node_modules/**', 'e2e/**'] を追加（Playwright ファイルの誤検知を修正）
+- [2026-03-23] Phase 5 (e2e-plan): E2E設計完了: e2e/roi-dashboard.spec.ts, 5件, スクリーンショット6枚
+- [2026-03-24] Phase 6 (e2e-run): E2E完了: 5件パス, ビデオ5件
+
+## E2E完了: 5件パス, ビデオ5件
+
+### 修正内容
+1. __dirname → import.meta.url ベースに変更（ES module 対応）
+2. indexedDB.open('InsightLogDB', 3) → バージョン指定なしに変更（VersionError 回避）
+
+### スクリーンショット検証
+- 01_home_with_roi_button.png — ホーム画面（ヘッダーにアイコンボタン群、AI ROIボタン確認可能）
+- 02_roi_dashboard_with_data.png — モーダルが開き4カード（AI活用率50%・150分削減・実装カテゴリ・ROIスコア67/Good）と棒グラフが表示
+- 03_roi_category_chart.png — カテゴリ別棒グラフ（調査・ドキュメント・レビュー・実装・設計）が描画されている
+- 04_roi_score_with_label.png — ROIスコア67とGoodラベルが表示されている
+- 05_roi_dashboard_empty.png — データなし状態でモーダルが開き空状態メッセージが表示されている
+- 06_modal_closed.png — モーダルが閉じてホーム画面が表示されている（全て合格）
+
+- [2026-03-24] Phase 7 (commit): コミット完了: 5件, push成功
+  - chore(test): vitest から e2e ディレクトリを除外
+  - feat(roi): AI ROI ダッシュボード機能を追加
+  - test(unit): roiCalc のユニットテスト 28 件を追加
+  - test(e2e): AI ROI ダッシュボードの E2E テスト 5 件を追加
+  - chore(demo): pipeline.json の plan〜e2e-run フェーズを done に更新
