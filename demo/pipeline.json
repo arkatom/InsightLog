@@ -5,6 +5,6 @@
   { "id": "e2e-plan",  "agent": "e2e-planner", "depends_on": ["implement"],             "label": "E2Eテスト設計", "status": "done" },
   { "id": "e2e-run",   "agent": "e2e-runner",  "depends_on": ["unit-test", "e2e-plan"], "label": "E2Eテスト実行・録画", "status": "done" },
   { "id": "commit",    "agent": "committer",   "depends_on": ["e2e-run"],               "label": "コミット・プッシュ", "status": "done" },
-  { "id": "pr",        "agent": "pr-creator",  "depends_on": ["commit"],                "label": "PR作成" },
+  { "id": "pr",        "agent": "pr-creator",  "depends_on": ["commit"],                "label": "PR作成", "status": "done" },
   { "id": "review",    "agent": "reviewer",    "depends_on": ["pr"],                    "label": "PRレビュー（多役割: PM/quality/ux/test/Devil）" }
 ]

@@ -57,3 +57,4 @@
   - test(unit): roiCalc のユニットテスト 28 件を追加
   - test(e2e): AI ROI ダッシュボードの E2E テスト 5 件を追加
   - chore(demo): pipeline.json の plan〜e2e-run フェーズを done に更新
+- [2026-03-24] PR作成完了: https://github.com/arkatom/InsightLog/pull/7
