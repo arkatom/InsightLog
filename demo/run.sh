@@ -3,31 +3,30 @@
 # Ship-from-Issue PRファクトリー — デモ実行スクリプト
 #
 # 使い方（InsightLog リポジトリルートから）:
-#   ./demo/run.sh
+#   ./demo/run.sh           # demo/fallback/issue.md を使用
+#   ./demo/run.sh 42        # GitHub Issue #42 を使用
 #
 # 動作:
-#   1. GitHub Issue を作成（または既存のものを再利用）
-#   2. pipeline.json から feature_list.json を生成（毎回クリーンな状態）
-#   3. claude --worktree で supervisor エージェントを起動
-#   4. feature_list.json のフェーズ定義に従って Sub-agent が自律実行
-#      plan → implement → unit-test + e2e-plan → e2e-run → commit → pr → review
-#   5. セッションログを demo/logs/ に保存
+#   1. GitHub Issue を作成（または既存のものを再利用、または引数の Issue を使用）
+#   2. claude --worktree で /ship-from-issue コマンドを実行
+#   3. stream-json で全イベントをリアルタイム整形表示
+#   4. セッションログを demo/logs/ に保存
 #
 # 所要時間: 40〜60分
 # 前提: InsightLog リポジトリのルートで実行すること
 # =============================================================================
 set -euo pipefail
 
-# InsightLog がスタンドアロンリポジトリとして使われる想定
-# → このスクリプトの親ディレクトリ（= InsightLog のルート）がリポジトリルート
 DEMO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "${DEMO_DIR}/.." && pwd)"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 LOG_FILE="${DEMO_DIR}/logs/session_${TIMESTAMP}.log"
+RAW_JSON_LOG="${DEMO_DIR}/logs/raw_${TIMESTAMP}.jsonl"
 ISSUE_NUMBER_FILE="${DEMO_DIR}/github_issue_number.txt"
 FALLBACK_ISSUE="${DEMO_DIR}/fallback/issue.md"
+STREAM_PARSER="${DEMO_DIR}/stream-parser.py"
 
-mkdir -p "${DEMO_DIR}/logs" "${DEMO_DIR}/screenshots"
+mkdir -p "${DEMO_DIR}/logs"
 
 # ── バナー ──────────────────────────────────────────────────────────────────
 cat << 'BANNER'
@@ -38,23 +37,22 @@ cat << 'BANNER'
 ║                                                                      ║
 ║   Issue → 計画 → 実装 → UT → Playwright E2E → コミット → PR → レビュー ║
 ║                                                                      ║
-║   アプリ: InsightLog（ポモドーロ × AI活用記録）                      ║
-║   設定:   demo/pipeline.json のフェーズ定義を参照                    ║
-║                                                                      ║
 ╚══════════════════════════════════════════════════════════════════════╝
 
 BANNER
 
-echo "  Sub-agent 構成:"
-echo "  supervisor → planner → implementer → [test-writer, e2e-planner] → e2e-runner"
-echo "             → committer → pr-creator → reviewer"
-echo ""
-
-# ── GitHub Issue の作成/再利用 ──────────────────────────────────────────────
+# ── Issue の特定 ──────────────────────────────────────────────────────────
+# 引数があればそれを使用、なければ既存 Issue の再利用 or 新規作成
+ISSUE_ARG="${1:-}"
 ISSUE_NUMBER=""
+
 cd "${REPO_DIR}"
 
-if command -v gh &> /dev/null && gh auth status &> /dev/null 2>&1; then
+if [[ -n "${ISSUE_ARG}" ]]; then
+  # 引数で Issue 番号が指定された
+  ISSUE_NUMBER="${ISSUE_ARG//[^0-9]/}"  # 数字のみ抽出
+  echo "📌 指定された Issue #${ISSUE_NUMBER} を使用"
+elif command -v gh &> /dev/null && gh auth status &> /dev/null 2>&1; then
   echo "📌 GitHub Issue を確認中..."
 
   # 既存 Issue の再利用
@@ -84,58 +82,21 @@ if command -v gh &> /dev/null && gh auth status &> /dev/null 2>&1; then
   fi
 else
   echo "⚠️  GitHub CLI 未認証。demo/fallback/issue.md をフォールバックとして使用"
-  echo "   ※ 認証するには: gh auth login"
+fi
+
+# コマンドに渡す引数を決定
+if [[ -n "${ISSUE_NUMBER}" ]]; then
+  COMMAND_ARG="${ISSUE_NUMBER}"
+else
+  COMMAND_ARG="demo/fallback/issue.md"
 fi
 
 echo ""
-echo "📋 Issue: ${ISSUE_NUMBER:+"GitHub Issue #${ISSUE_NUMBER}"}${ISSUE_NUMBER:-"demo/fallback/issue.md（ローカル）"}"
+echo "📋 Issue: ${ISSUE_NUMBER:+"#${ISSUE_NUMBER}"}${ISSUE_NUMBER:-"demo/fallback/issue.md（ローカル）"}"
 echo "📝 ログ:  ${LOG_FILE}"
 echo "⏱  完了まで 40〜60 分かかります..."
 echo ""
-echo "  進捗確認:"
-echo "  - ${REPO_DIR}/.claude/worktrees/demo-run/claude-progress.txt"
-echo "  - ${REPO_DIR}/.claude/worktrees/demo-run/demo/feature_list.json"
-echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo ""
-
-# ── feature_list.json を pipeline.json + Issue データから生成 ────────────
-if [[ -n "${ISSUE_NUMBER}" ]]; then
-  ISSUE_TITLE=$(gh issue view "${ISSUE_NUMBER}" --json title -q .title 2>/dev/null \
-    || head -1 "${FALLBACK_ISSUE}" | sed 's/^# //')
-  BRANCH_NAME="feat/issue-${ISSUE_NUMBER}"
-  GITHUB_ISSUE_JSON="${ISSUE_NUMBER}"
-else
-  ISSUE_TITLE=$(head -1 "${FALLBACK_ISSUE}" | sed 's/^# //')
-  BRANCH_NAME="feat/local-$(date +%Y%m%d%H%M%S)"
-  GITHUB_ISSUE_JSON="None"
-fi
-
-NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-
-python3 - << PYEOF > "${DEMO_DIR}/feature_list.json"
-import json
-
-with open("${DEMO_DIR}/pipeline.json") as f:
-    phases = json.load(f)
-
-for p in phases:
-    p["status"] = "pending"
-
-print(json.dumps({
-    "feature": "${ISSUE_TITLE}",
-    "issue": "demo/fallback/issue.md",
-    "github_issue": ${GITHUB_ISSUE_JSON},
-    "branch": "${BRANCH_NAME}",
-    "started_at": "${NOW}",
-    "completed_at": None,
-    "phases": phases
-}, ensure_ascii=False, indent=2))
-PYEOF
-
-echo "📋 pipeline.json から feature_list.json を生成しました"
-echo "   feature: ${ISSUE_TITLE}"
-echo "   branch:  ${BRANCH_NAME}"
 echo ""
 
 # ── Claude Code をワークツリーモードで起動 ────────────────────────────────
@@ -146,33 +107,19 @@ WORKTREE_PATH="${REPO_DIR}/.claude/worktrees/${WORKTREE_NAME}"
 git worktree remove --force "${WORKTREE_PATH}" 2>/dev/null || true
 git branch -D "worktree-${WORKTREE_NAME}" 2>/dev/null || true
 
-# .claude/commands/ship-from-issue.md から本文（frontmatter 除外）を取得
-COMMANDS_FILE="${REPO_DIR}/.claude/commands/ship-from-issue.md"
-if [[ -f "${COMMANDS_FILE}" ]]; then
-  PROMPT="$(awk 'BEGIN{f=0} /^---$/{f++; next} f>=2{print}' "${COMMANDS_FILE}")"
-else
-  PROMPT="supervisor エージェントを起動してください。demo/feature_list.json を読み、パイプラインを実行してください。"
-fi
-
 # ISSUE_NUMBER を環境変数として渡す
 export ISSUE_NUMBER="${ISSUE_NUMBER}"
 
 echo "📂 ワークツリー: ${WORKTREE_PATH}"
-echo "   進捗確認: tail -f ${WORKTREE_PATH}/claude-progress.txt"
 echo ""
-echo "Claude Code を起動中..."
+echo "📊 ログ出力:"
+echo "   整形ログ（ターミナル表示）: リアルタイム"
+echo "   生JSONログ（後から分析用）: ${RAW_JSON_LOG}"
+echo ""
+echo "Claude Code を起動中（stream-json モード）..."
 echo ""
 
-# バックグラウンドで起動（--worktree demo-run で固定パスにワークツリーを作成）
-claude --worktree "${WORKTREE_NAME}" --dangerously-skip-permissions -p "${PROMPT}" \
-  > "${LOG_FILE}" 2>&1 &
-CLAUDE_PID=$!
-
-# ログをリアルタイム表示
-tail -f "${LOG_FILE}" &
-TAIL_PID=$!
-
-# claude-progress.txt が作成されたらリアルタイムで追跡
+# ── claude-progress.txt をリアルタイム追跡 ──
 (
   until [[ -f "${WORKTREE_PATH}/claude-progress.txt" ]]; do sleep 1; done
   echo ""
@@ -181,16 +128,18 @@ TAIL_PID=$!
 ) &
 PROGRESS_TAIL_PID=$!
 
-# ワークツリーの demo/ が作成されるまでポーリング（0.5秒間隔）
-until [[ -d "${WORKTREE_PATH}/demo" ]]; do sleep 0.5; done
+# ── Claude Code を stream-json モードで起動 ──
+# /ship-from-issue コマンドに Issue 番号（またはファイルパス）を渡す
+PROMPT="/ship-from-issue ${COMMAND_ARG}"
 
-# gitignore 済みの feature_list.json をワークツリーに持ち込む
-cp "${DEMO_DIR}/feature_list.json" "${WORKTREE_PATH}/demo/feature_list.json"
+claude --worktree "${WORKTREE_NAME}" --dangerously-skip-permissions \
+  -p "${PROMPT}" \
+  --output-format stream-json \
+  --verbose \
+  2>"${LOG_FILE}" \
+  | python3 "${STREAM_PARSER}" --raw-log "${RAW_JSON_LOG}"
+EXIT_CODE=${PIPESTATUS[0]}
 
-# 完了まで待機
-wait "${CLAUDE_PID}"
-EXIT_CODE=$?
-kill "${TAIL_PID}" 2>/dev/null || true
 kill "${PROGRESS_TAIL_PID}" 2>/dev/null || true
 
 echo ""
@@ -200,17 +149,19 @@ if [[ ${EXIT_CODE} -eq 0 ]]; then
   echo ""
   echo "✅ デモ完了！"
   echo ""
-  echo "  📂 ワークツリー（実装確認）:       ${WORKTREE_PATH}"
-  echo "  📸 スクリーンショット・ビデオ: ${DEMO_DIR}/screenshots/"
-  echo "  📝 セッションログ:             ${LOG_FILE}"
-  echo "  📊 進捗メモ:                  ${WORKTREE_PATH}/claude-progress.txt"
+  echo "  📂 ワークツリー:             ${WORKTREE_PATH}"
+  echo "  📝 テキストログ:             ${LOG_FILE}"
+  echo "  📊 生JSONログ:               ${RAW_JSON_LOG}"
+  echo "  📊 進捗メモ:                ${WORKTREE_PATH}/claude-progress.txt"
   echo ""
-  echo "  PR URL はログの末尾を確認してください ↑"
+  echo "  🔍 ログ再生:"
+  echo "     cat ${RAW_JSON_LOG} | python3 ${STREAM_PARSER}"
   echo ""
-  echo "  ワークツリー削除: git worktree remove .claude/worktrees/${WORKTREE_NAME}"
+  echo "  🧹 後片付け: /cleanup"
+  echo ""
 else
   echo ""
   echo "⚠️  エラーで終了しました（終了コード: ${EXIT_CODE}）"
-  echo "  ログ:  ${LOG_FILE}"
-  echo "  進捗: ${WORKTREE_PATH}/claude-progress.txt"
+  echo "  テキストログ:  ${LOG_FILE}"
+  echo "  生JSONログ:    ${RAW_JSON_LOG}"
 fi

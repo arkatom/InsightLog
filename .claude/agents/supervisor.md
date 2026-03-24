@@ -1,49 +1,38 @@
 ---
 name: supervisor
-description: "Ship-from-Issue パイプラインの監督エージェント。demo/feature_list.json のフェーズ定義を読み込み、依存関係 (depends_on) に従って各 Sub-agent を順次起動する。特定機能に依存しない汎用オーケストレーター。"
+description: "Ship-from-Issue パイプラインの監督ガイド。トップレベルが supervisor を兼ねるため、このファイルは実行手順のリファレンスとして参照される。Agent として起動されるものではない。"
 tools: Bash, Read, Write, Agent
 model: opus
 ---
 
-# supervisor — パイプライン監督エージェント
+# supervisor — パイプライン監督ガイド
 
-## 責務
+## 重要
 
-`demo/feature_list.json` を設定ソースとして読み込み、フェーズ定義に基づいて Sub-agent を起動する。
-このエージェント自身は実装もテストも行わない。進捗の追跡と Sub-agent の起動に専念する。
+**このファイルは Agent として起動されるものではない。**
+Claude Code の制約により、Agent ツールで起動されたサブエージェントは自身がさらに Agent を起動できない（ネスト不可）。
 
----
-
-## 起動時の処理
-
-### 1. コンテキスト読み込み
-
-```
-Read: demo/feature_list.json        ← パイプライン定義（フェーズ・依存関係）
-Read: CLAUDE.md                     ← テックスタック・規約
-```
-
-`demo/feature_list.json` が存在しない場合は 2 秒待ってリトライする
-（run.sh のポーリングコピーが間に合っていない可能性があるため）。
-
-Issue を GitHub から取得する（github_issue が設定されている場合）:
-```bash
-[ -n "$ISSUE_NUMBER" ] && gh issue view "$ISSUE_NUMBER" --json title,body
-```
-取得できない場合は `demo/fallback/issue.md` を読む。
-
-### 2. 開始記録
-
-`claude-progress.txt` に以下を追記する:
-```
-## [ISO時刻] パイプライン開始
-Issue: [タイトル]
-フェーズ: [feature_list.json の phases 一覧]
-```
-
-`feature_list.json` の `started_at` を現在時刻で更新する。
+そのため、**トップレベル（`claude -p` で起動されたコンテキスト）自身が supervisor を兼ねる。**
+`.claude/commands/ship-from-issue.md` がトップレベルへの指示文であり、このファイルはリファレンスとして参照される。
 
 ---
+
+## パイプライン概要
+
+```
+トップレベル（supervisor 兼任）
+  ├── plan フェーズ → Skill("planner-team") → Agent Teams: searcher → architect → devil
+  ├── implement → Agent: implementer
+  ├── unit-test → Agent: test-writer    ─┐ 並行可
+  ├── e2e-plan → Agent: e2e-planner     ─┘
+  ├── e2e-run  → Agent: e2e-runner
+  ├── commit   → Agent: committer
+  ├── pr       → Agent: pr-creator
+  └── review フェーズ → Skill("reviewer-team") → Agent Teams: quality/ux/test → devil
+```
+
+Skill はトップレベルのコンテキスト内で展開されるため、Agent ツールが使用可能。
+Agent Teams のメンバーを直接 Agent として起動できる。
 
 ## フェーズ実行ループ
 
@@ -53,31 +42,22 @@ Issue: [タイトル]
 while 未完了フェーズが存在する:
   実行可能フェーズ = depends_on が全て "done" のフェーズの中で status="pending" のもの
   for フェーズ in 実行可能フェーズ:
-    Sub-agent を起動（フェーズの agent フィールドで指定）
+    Agent を起動（フェーズの agent フィールドで指定）
     完了したら feature_list.json の status を "done" に更新
     claude-progress.txt に完了記録
   if 実行可能フェーズが空 && 未完了フェーズが存在する:
     エラー: 依存関係のデッドロック → 状況を報告して停止
 ```
 
-### Sub-agent 起動時に渡す情報
+## Agent 起動時に渡す情報
 
-各 Sub-agent を `Agent` ツールで起動する際、以下を必ずプロンプトに含める:
+各 Agent を起動する際、以下を必ずプロンプトに含める:
 - Issue の概要（title + 受け入れ条件）
 - `feature_list.json` の内容（全フェーズの現在状態）
 - 現在のフェーズ ID とラベル
 - ブランチ名
-- Sub-agent が完了時に `feature_list.json` の自分のフェーズ status を `"done"` に更新すること
+- Agent が完了時に `feature_list.json` の自分のフェーズ status を `"done"` に更新すること
 
 **フェーズ固有の追加情報:**
-- `implement` 起動時: `demo/plan_output.md` の全内容をプロンプトに含める（planner が保存した実装計画書）
-- `review` 起動時: PR 番号または PR URL をプロンプトに含める（pr-creator が返した値）
-
----
-
-## 完了処理
-
-全フェーズが `"done"` になったら:
-1. `feature_list.json` の `completed_at` を現在時刻で更新
-2. `claude-progress.txt` に「パイプライン完了 🎉」を記録
-3. PR の URL を出力して終了
+- `implement` 起動時: `demo/plan_output.md` の全内容をプロンプトに含める
+- `review` 起動時: PR 番号または PR URL をプロンプトに含める

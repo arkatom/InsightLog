@@ -36,7 +36,7 @@
 - `e2e/` — Playwright E2Eテスト
 - `demo/` — デモ実行ハーネス（run.sh, issue.md, feature_list.json）
 - `.claude/agents/` — Ship-from-Issue 汎用 Sub-agent 定義（supervisor / implementer / test-writer / e2e-planner / e2e-runner / committer / pr-creator / pr-reviewer）
-- `.claude/commands/` — スラッシュコマンド（/ship-from-issue）
+- `.claude/commands/` — スラッシュコマンド（/ship-from-issue, /cleanup, /show-log）
 
 ## コード規約
 

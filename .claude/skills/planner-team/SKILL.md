@@ -1,6 +1,6 @@
 ---
 name: planner-team
-description: 実装計画策定専門チーム。PM/Searcher/Architect/Devilの4ロールでDevil's Advocateサイクルを実行し、demo/plan_output.md に承認済み計画を保存する。
+description: 実装計画策定専門チーム。PM/Searcher/Architect/Devilの4ロールでDevil's Advocateサイクルを実行し、承認済み計画を保存する。
 ---
 
 # 計画チーム ワークフロー
@@ -15,7 +15,7 @@ description: 実装計画策定専門チーム。PM/Searcher/Architect/Devilの4
 ## Phase 1: 調査
 
 ```
-[👑 PM] demo/issue.md と CLAUDE.md を読み、受け入れ条件を把握する
+[👑 PM] Issue（GitHub Issue or ローカル仕様ファイル）と CLAUDE.md を読み、受け入れ条件を把握する
 
 [🔎 Searcher] Issue の受け入れ条件から実装に必要な情報を調査する:
   1. 実装候補ファイル（新規作成・変更対象）
@@ -73,7 +73,7 @@ description: 実装計画策定専門チーム。PM/Searcher/Architect/Devilの4
 ## Phase 4: 出力
 
 ```
-[👑 PM] 承認済みの計画を demo/plan_output.md に保存する
+[👑 PM] 承認済みの計画をファイルに保存する（デフォルト: plan_output.md、呼び出し元が指定した場合はそのパス）
 
 保存形式:
   # 実装計画: [Issue タイトル]
@@ -87,15 +87,17 @@ description: 実装計画策定専門チーム。PM/Searcher/Architect/Devilの4
   ## 受け入れ条件との対応表
   ## Devil が指摘した軽微な懸念（実装時に考慮すること）
 
-[👑 PM] feature_list.json の "plan" フェーズの status を "done" に更新する
+[👑 PM] feature_list.json が存在する場合、"plan" フェーズの status を "done" に更新する
 [👑 PM] claude-progress.txt に「計画策定完了（Devil N回指摘、解消済み）」を追記する
+[👑 PM] 計画書の保存先パスを報告する
 ```
 
 ## 実行ルール
 
-- **自律実行**: ユーザーの介入を待たず、PM が各ロールを順番に演じてサイクルを回す
+- **Agent Teams 必須**: Searcher / Architect / Devil は必ず Agent ツールで別プロセスとして起動すること。PM が各ロールを「演じる」のではなく、独立したエージェントとして起動する
+- **PM は自分自身**: コンテキスト読み込み・Agent 起動・結果の中継・最終出力は PM（planner 自身）が行う
 - **再帰的検証**: 重大な問題が解消するまで Devil → Architect → Devil のループを繰り返す
 - **根拠必須**: すべての指摘・判断は Issue の受け入れ条件またはコードパスに基づく
 - **停止条件**: Devil が重大な問題なしと判定し、plan_output.md が保存された時のみ完了
 
-チームを起動してください。
+Agent Teams を起動してください。
