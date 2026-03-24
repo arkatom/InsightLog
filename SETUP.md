@@ -27,3 +27,25 @@ cd InsightLog
 - 表示されるURLをコピーしてブラウザで開き、Authorize をクリックして認証を完了させる
   - 認証が完了しない場合、ターミナルに表示されているURLをコピーしてブラウザで開き、`Paste code here if prompted >` に認証コードを貼り付けて Enter を押す
 - 認証が成功すると、ターミナルに「Authentication successful!」と表示されます
+
+## トラブルシューティング
+- Dev Container 内で `gh auth login` を実行しようとすると、書き込みエラーが発生する場合があります。これは、Dev Container の /home/node ディレクトリが Docker overlay FS で容量が限られているためです。
+
+1. npm キャッシュを削除してスペース確保
+npm cache clean --force
+
+2. gh ログイン（スペースができたはず）
+GH_CONFIG_DIR=/workspaces/InsightLog/.gh-config gh auth login
+
+3. git credential 設定
+GH_CONFIG_DIR=/workspaces/InsightLog/.gh-config gh auth setup-git
+
+GH_CONFIG_DIR を前置することで、現在の /home/node への書き込みを避けています。
+
+次回リビルド後は自動的に remoteEnv の設定が効いて /workspaces/InsightLog/.gh-config が使われるため、手動指定不要になります。
+
+★ Insight ─────────────────────────────────────
+- Dev Container の /home/node は Docker overlay FS で容量が限られる。VS Code Server（.vscode-server/）が数百MB〜1GB
+消費することが多い。キャッシュ系ディレクトリはすべて /workspaces 配下（永続ボリューム）に向けるのが根本対策
+- GH_CONFIG_DIR・NPM_CONFIG_CACHE・PLAYWRIGHT_BROWSERS_PATH を remoteEnv に集約することで、次回以降はリビルドするだけで自動的に適切なパスが使われる
+─────────────────────────────────────────────────
