@@ -57,23 +57,18 @@ cd InsightLog
 ![](docs/assets/image.png)
 
 ## トラブルシューティング
-- Dev Container 内で `gh auth login` を実行しようとすると、書き込みエラーが発生する場合があります。これは、Dev Container の /home/node ディレクトリが Docker overlay FS で容量が限られているためです。
 
-1. npm キャッシュを削除してスペース確保
+### ディスク容量エラーが出る場合
+Dev Container の `/home/node` は Docker overlay FS で容量が限られています。`devcontainer.json` の `containerEnv` / `remoteEnv` でキャッシュ系ディレクトリを `/workspaces` 配下に設定済みですが、問題が出た場合:
+
+```bash
+# npm キャッシュを削除してスペース確保
 npm cache clean --force
+```
 
-2. gh ログイン（スペースができたはず）
-GH_CONFIG_DIR=/workspaces/InsightLog/.gh-config gh auth login
-
-3. git credential 設定
-GH_CONFIG_DIR=/workspaces/InsightLog/.gh-config gh auth setup-git
-
-GH_CONFIG_DIR を前置することで、現在の /home/node への書き込みを避けています。
-
-次回リビルド後は自動的に remoteEnv の設定が効いて /workspaces/InsightLog/.gh-config が使われるため、手動指定不要になります。
-
-★ Insight ─────────────────────────────────────
-- Dev Container の /home/node は Docker overlay FS で容量が限られる。VS Code Server（.vscode-server/）が数百MB〜1GB
-消費することが多い。キャッシュ系ディレクトリはすべて /workspaces 配下（永続ボリューム）に向けるのが根本対策
-- GH_CONFIG_DIR・NPM_CONFIG_CACHE・PLAYWRIGHT_BROWSERS_PATH を remoteEnv に集約することで、次回以降はリビルドするだけで自動的に適切なパスが使われる
-─────────────────────────────────────────────────
+### GitHub 認証に失敗する場合
+```bash
+# 手動で認証をやり直す
+gh auth login --hostname github.com --git-protocol https --web
+gh auth setup-git
+```

@@ -9,7 +9,10 @@
   "forwardPorts": [5173],
   "remoteEnv": {
     "PLAYWRIGHT_BROWSERS_PATH": "/workspaces/InsightLog/.playwright-browsers",
-    "GH_CONFIG_DIR": "/workspaces/InsightLog/.gh-config",
+    "GH_CONFIG_DIR": "/workspaces/InsightLog/.gh-config"
+  },
+  "containerEnv": {
+    "PLAYWRIGHT_BROWSERS_PATH": "/workspaces/InsightLog/.playwright-browsers",
     "NPM_CONFIG_CACHE": "/workspaces/InsightLog/.npm-cache"
   },
   "postCreateCommand": "npm install && npx playwright install --with-deps chromium",

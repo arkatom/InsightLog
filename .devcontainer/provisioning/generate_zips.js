@@ -17,12 +17,15 @@ if (!fs.existsSync(csvPath)) {
 const csvContent = fs.readFileSync(csvPath, 'utf-8');
 const lines = csvContent.split('\n').filter((line) => line.trim() !== '');
 
-const trainees = lines.slice(1).map((line) => {
+const trainees = lines.slice(1).map((line, index) => {
   // ダブルクォートを考慮した簡易パース
-  const values = line
-    .match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g)
-    .map((v) => v.replace(/(^"|"$)/g, ''));
-  return { name: values[0], email: values[1], apiKey: values[2] };
+  const values = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+  if (!values || values.length < 3) {
+    console.error(`エラー: ${index + 2}行目のフォーマットが不正です: ${line}`);
+    process.exit(1);
+  }
+  const cleaned = values.map((v) => v.replace(/(^"|"$)/g, ''));
+  return { name: cleaned[0], email: cleaned[1], apiKey: cleaned[2] };
 });
 
 const baseDir = path.join(projectRoot, 'base_template');
@@ -48,8 +51,8 @@ trainees.forEach((trainee) => {
   // テンプレートのコピー
   execSync(`cp -r "${baseDir}" "${tempDir}"`);
 
-  // 個別 .env の作成
-  const envContent = `ANTHROPIC_API_KEY=${trainee.apiKey}\nTRAINEE_NAME="${trainee.name}"\nTRAINEE_EMAIL="${trainee.email}"\n`;
+  // 個別 .env の作成（全値をダブルクォートで囲み、source 時の安全性を確保）
+  const envContent = `ANTHROPIC_API_KEY="${trainee.apiKey}"\nTRAINEE_NAME="${trainee.name}"\nTRAINEE_EMAIL="${trainee.email}"\n`;
   fs.writeFileSync(path.join(tempDir, '.env'), envContent);
 
   // ZIP化と一時ディレクトリの削除
