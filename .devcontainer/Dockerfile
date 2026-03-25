@@ -12,3 +12,6 @@ USER node
 RUN curl -fsSL https://claude.ai/install.sh | bash
 USER root
 RUN ln -sf /home/node/.local/bin/claude /usr/local/bin/claude
+
+# devcontainer の postCreateCommand は node ユーザーで実行する
+USER node
