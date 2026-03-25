@@ -7,7 +7,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Claude Code のインストール（公式推奨のネイティブ版）
-# root権限でインストール後、全ユーザーからアクセス可能な /usr/local/bin に移動する
-RUN curl -fsSL https://claude.ai/install.sh | bash \
-    && mv /root/.local/bin/claude /usr/local/bin/claude \
-    && chmod +x /usr/local/bin/claude
+# node ユーザーとしてインストールし、シンボリックリンクの実体ごと正しく配置する
+USER node
+RUN curl -fsSL https://claude.ai/install.sh | bash
+USER root
+RUN ln -sf /home/node/.local/bin/claude /usr/local/bin/claude
