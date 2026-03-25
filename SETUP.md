@@ -43,14 +43,13 @@ cd InsightLog
 - 初回はコンテナのビルドに時間がかかることがありますが、完了すると Dev Container 内で VSCode が再起動します
 
 ## 5. claude code をインストールして認証する
-- .env ファイルに `ANTHROPIC_API_KEY=your_api_key_here` を追加
-- `claude` コマンドを打つ
-  - エラーになる場合、 `curl -fsSL https://claude.ai/install.sh | bash` を実行してインストールしてください
-  - 以後基本的にEnterキーを押すだけでOK。
+- bash ./setup.sh を実行して、Claude Code をインストール（GitHub の認証・リポジトリ作成まで）。
+  - 基本的にEnterキーを押すだけでOK。
 - サブスクリプション利用かAPI利用かを選択（2. Anthropic Console account · API usage billing）
 - 表示されるURLをコピーしてブラウザで開き、Authorize をクリックして認証を完了させる
   - 認証が完了しない場合、ターミナルに表示されているURLをコピーしてブラウザで開き、`Paste code here if prompted >` に認証コードを貼り付けて Enter を押す
 - 認証が成功すると、ターミナルに「Authentication successful!」と表示されます
+- エラーになる場合、 `curl -fsSL https://claude.ai/install.sh | bash` を実行してインストールしてください
 
 ## 6. セットアップ完了
 以下のような画面になったらセットアップは完了です。お疲れ様でした！
@@ -59,7 +58,7 @@ cd InsightLog
 ## トラブルシューティング
 
 ### ディスク容量エラーが出る場合
-Dev Container の `/home/node` は Docker overlay FS で容量が限られています。`devcontainer.json` の `containerEnv` / `remoteEnv` でキャッシュ系ディレクトリを `/workspaces` 配下に設定済みですが、問題が出た場合:
+Dev Container の `/home/node` は Docker overlay FS で容量が限られています。`devcontainer.json` の `remoteEnv` でキャッシュ系ディレクトリをワークスペース配下に設定済みですが、問題が出た場合:
 
 ```bash
 # npm キャッシュを削除してスペース確保

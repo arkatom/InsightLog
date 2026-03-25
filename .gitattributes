@@ -1,0 +1,4 @@
+# ZIP配布パッケージから除外するファイル（git archive 用）
+# 研修運営側のプロビジョニングツール（受講生には不要）
+.devcontainer/provisioning/ export-ignore
+.gitattributes export-ignore
