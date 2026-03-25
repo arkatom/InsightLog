@@ -9,7 +9,9 @@
       "Bash(ls:*)",
       "Bash(python3 demo/stream-parser.py)",
       "Bash(./demo/run.sh)",
-      "Bash(claude /improve)"
+      "Bash(claude /improve)",
+      "Bash(find /Users/murataatsurou/ghq/github.com/amurata/InsightLog -maxdepth 2 -name .env* -o -name setup.sh -o -name *generate_zips* -o -name *trainees*)",
+      "Bash(find /Users/murataatsurou/ghq/github.com/amurata/InsightLog -maxdepth 3 -name setup.sh -o -name *init* -o -name initialize*)"
     ]
   },
   "enableAllProjectMcpServers": true,

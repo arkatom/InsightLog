@@ -68,6 +68,9 @@ export default defineConfig({
       '@': resolve(__dirname, './src'),
     },
   },
+  server: {
+    host: true,
+  },
   build: {
     rollupOptions: {
       output: {

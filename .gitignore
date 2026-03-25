@@ -49,6 +49,11 @@ demo/plan_output.md
 # Claude Code ワークツリー（自動生成）
 .claude/worktrees/
 
+# プロビジョニング（研修用ZIP生成）
+dist_zips/
+base_template/
+.devcontainer/provisioning/trainees.csv
+
 # Dev Container キャッシュ（/workspaces に書き出されるもの）
 .playwright-browsers/
 .gh-config/
