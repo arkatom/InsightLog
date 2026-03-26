@@ -2,57 +2,80 @@
 
 ## 研修受講者向け（ZIPパッケージ配布の場合）
 
-配布されたZIPファイルを使う場合は、以下の3ステップで環境構築が完了します。
+### 前提条件
 
-1. **配置と展開**: ZIPファイル（InsightLog_xxxx.zip）を任意の場所に解凍し、VS Codeでそのフォルダを開く
-2. **コンテナ起動**: 画面右下のポップアップ、またはコマンドパレット（F1）から「Reopen in Container」を選択し、環境構築を待機
-3. **初期セットアップ**: 構築完了後、VS Code内でターミナルを開き以下を実行:
+以下のソフトウェア/拡張機能が PC にインストール済みであることを確認してください。
+
+- **Visual Studio Code**（VS Code）
+  - **Dev Containers 拡張機能**（VS Code 内の拡張機能から「Dev Containers」を検索してインストール）
+- **Docker Desktop**
+
+---
+
+### 手順
+
+#### 1. ZIP ファイルを解凍する
+
+配布された ZIP ファイル（InsightLog_xxxx.zip）を任意の場所（ご自身のワークスペース）に解凍します。
+
+#### 2. VS Code でフォルダを開く
+
+Visual Studio Code を起動し、解凍したフォルダを開きます。
+（「ファイル」→「フォルダーを開く」から選択）
+
+#### 3. Dev Container でコンテナを起動する
+
+画面右下にポップアップが表示されるので「**Reopen in Container**」を選択します。
+表示されない場合は、コマンドパレット（`F1` または `Shift+⌘+P`）から「Dev Containers: Reopen in Container」を実行してください。
+
+> **エラーが出る場合**: Docker Desktop が起動していない可能性があります。
+> Docker Desktop を開いてから、再度「Reopen in Container」を実行してください。
+
+#### 4.（初回のみ）構成の選択
+
+初回起動時に選択肢が表示される場合があります。以下のように選択してください。
+
+1. 「**Add configuration to workspace**」を選択
+2. 「**Default Linux Universal**」を選択
+3. 以降の選択肢は**何も選択せずに「OK」**を押してください
+
+コンテナのビルドが始まります。完了するまでしばらくお待ちください。
+
+#### 5. セットアップスクリプトを実行する
+
+コンテナの構築が完了したら、VS Code 内でターミナルを開き（`Shift+Ctrl+@`）、以下を実行します。
 
 ```bash
 bash ./setup.sh
 ```
 
-表示される8桁のワンタイムコードをブラウザに入力し、GitHubへの連携を許可してください。
-以上でAPIキーの適用・リポジトリの作成が完了し、開発を開始できます。
+表示される 8 桁のワンタイムコードをブラウザに入力し、配布された GitHub アカウントで GitHub との連携を許可してください。
 
----
+#### 6. Claude Code を起動・認証する
 
-## 開発者向け（リポジトリクローンの場合）
-
-## 1. ワーキングディレクトリに移動
-- まずはターミナルを開いて、作業したいディレクトリに移動してください。
+ターミナルで以下を実行します。
 
 ```bash
-cd path/to/your/working/directory
+claude
 ```
 
-## 2. リポジトリをクローン
+起動後、いくつかの選択肢が表示されます。
 
-```bash
-git clone https://github.com/arkatom/InsightLog.git
-cd InsightLog
-```
+1. **mode の選択** — お好みのモードを選択してください
+2. **課金方式の選択** — 「**Anthropic API usage...**」を選択
+3. **ブラウザ認証** — ターミナルに表示される URL を開き、ブラウザで認証画面に進みます
+4. **メールアドレスの入力** — 認証画面の email フォームに以下を入力し、「有効メールを送信」を押します
+   ```
+   expart-ax@g-wartes.net
+   ```
+5. **CS（カスタマーサポート）での承認** — 送信された有効化メールを CS 側で承認します
 
-## 3. VSCode を開いて、Dev Containers 拡張機能がインストールされていることを確認
-- VSCode の拡張機能から「Dev Containers」を検索してインストール
+#### 7. セットアップ完了
 
-## 4. VSCode でリポジトリのフォルダを開き、Dev Container で開く
-- VSCode で「ファイル」→「フォルダを開く」を選択し、クローンしたリポジトリのフォルダを選ぶ
-- VSCode の左下の `><` ボタンをクリック
-- 「Reopen in Container」（コンテナーで再度開く）を選択して、Dev Container 内でプロジェクトを開く
-- 初回はコンテナのビルドに時間がかかることがありますが、完了すると Dev Container 内で VSCode が再起動します
+ログインに成功すると API が連動します。以降の確認ダイアログでは基本的に「**yes**」を選択してください。
 
-## 5. claude code をインストールして認証する
-- bash ./setup.sh を実行して、Claude Code をインストール（GitHub の認証・リポジトリ作成まで）。
-  - 基本的にEnterキーを押すだけでOK。
-- サブスクリプション利用かAPI利用かを選択（2. Anthropic Console account · API usage billing）
-- 表示されるURLをコピーしてブラウザで開き、Authorize をクリックして認証を完了させる
-  - 認証が完了しない場合、ターミナルに表示されているURLをコピーしてブラウザで開き、`Paste code here if prompted >` に認証コードを貼り付けて Enter を押す
-- 認証が成功すると、ターミナルに「Authentication successful!」と表示されます
-- エラーになる場合、 `curl -fsSL https://claude.ai/install.sh | bash` を実行してインストールしてください
+以下のような画面が表示されたらセットアップ完了です。
 
-## 6. セットアップ完了
-以下のような画面になったらセットアップは完了です。お疲れ様でした！
 ![](docs/assets/image.png)
 
 ## トラブルシューティング
