@@ -16,13 +16,11 @@ import { formatMinutes } from '@/lib/time';
 // モーダルを遅延ロード
 const StatsModal = lazy(() => import('@/components/statistics/StatsModal').then(m => ({ default: m.StatsModal })));
 const SettingsModal = lazy(() => import('@/components/settings/SettingsModal').then(m => ({ default: m.SettingsModal })));
-const ReportModal = lazy(() => import('@/components/report/ReportModal').then(m => ({ default: m.ReportModal })));
 
 export function HomePage() {
   const [showTaskList, setShowTaskList] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [showReports, setShowReports] = useState(false);
   const { currentCycle, mode } = useTimer();
   const stats = useStatistics('today');
   const { settings } = useSettings();
@@ -34,7 +32,7 @@ export function HomePage() {
         onTaskListClick={() => setShowTaskList(true)}
         onStatsClick={() => setShowStats(true)}
         onSettingsClick={() => setShowSettings(true)}
-        onReportClick={() => setShowReports(true)}
+
       />
 
       {showTimer && (
@@ -86,10 +84,7 @@ export function HomePage() {
         {showSettings && <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} />}
       </Suspense>
 
-      {/* レポートモーダル（遅延ロード） */}
-      <Suspense fallback={null}>
-        {showReports && <ReportModal isOpen={showReports} onClose={() => setShowReports(false)} />}
-      </Suspense>
+
     </Container>
   );
 }

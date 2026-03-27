@@ -226,7 +226,6 @@ export async function deleteAllData(): Promise<void> {
   await db.tasks.clear();
   await db.sessions.clear();
   await db.settings.clear();
-  await db.reports.clear();
 }
 
 /**
