@@ -1,6 +1,6 @@
+import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
-import { execSync } from 'child_process';
 
 const scriptDir = import.meta.dirname;
 const projectRoot = path.resolve(scriptDir, '../..');
