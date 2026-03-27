@@ -6,13 +6,13 @@ stdin から stream-json (NDJSON) を読み取り、
 Claude Code の対話風にすべてのイベントを整形表示する。
 
 表示内容:
-  - セッション初期化（モデル・ツール・MCP サーバー）
-  - 思考（thinking）— 全文表示
-  - ツール呼び出し（tool_use）— ツール名・パラメータ全文
-  - ツール結果（tool_result）— 出力全文
-  - サブエージェント起動・進捗・完了
-  - テキスト応答 — 全文表示
-  - コスト・トークン使用量
+    - セッション初期化（モデル・ツール・MCP サーバー）
+    - 思考（thinking）— 全文表示
+    - ツール呼び出し（tool_use）— ツール名・パラメータ全文
+    - ツール結果（tool_result）— 出力全文
+    - サブエージェント起動・進捗・完了
+    - テキスト応答 — 全文表示
+    - コスト・トークン使用量
 
 使い方:
   # リアルタイム（run.sh から）
@@ -23,10 +23,9 @@ Claude Code の対話風にすべてのイベントを整形表示する。
   cat demo/logs/raw_YYYYMMDD_HHMMSS.jsonl | python3 demo/stream-parser.py
 """
 
+import argparse
 import json
 import sys
-import argparse
-import textwrap
 from datetime import datetime
 
 # ── ANSI カラー ──────────────────────────────────────────────────────────
