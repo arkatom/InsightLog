@@ -23,7 +23,7 @@ export function HomePage() {
   const [showStats, setShowStats] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showReports, setShowReports] = useState(false);
-  const { currentCycle } = useTimer();
+  const { currentCycle, mode } = useTimer();
   const stats = useStatistics('today');
   const { settings } = useSettings();
   const showTimer = settings.showTimer ?? true;
@@ -44,7 +44,9 @@ export function HomePage() {
           <Card>
             <SessionIndicator />
             <TimerDisplay />
-            <div className="text-primary-400 text-center mb-8">サイクル {currentCycle}/4</div>
+            {mode === 'pomodoro' && (
+              <div className="text-primary-400 text-center mb-8">サイクル {currentCycle}/4</div>
+            )}
             <TimerControls />
 
             {/* 今日の統計 */}

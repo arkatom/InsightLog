@@ -5,6 +5,7 @@ import { useSessions } from './useSessions';
 import type { SessionType } from '@/types/session';
 import { audioNotification } from '@/lib/audio';
 import { notifyTimerEnd, vibrate } from '@/lib/notification';
+import { saveTimerState, loadTimerState, clearTimerState } from '@/lib/storage';
 
 /**
  * タイマーのロジックを提供するカスタムフック
@@ -31,6 +32,65 @@ export function useTimer() {
 
   const sessionIdRef = useRef<string | null>(null);
   const startTimeRef = useRef<number | null>(null);
+  const restoredRef = useRef(false);
+
+  /**
+   * 現在のセッションタイプに対応する設定上の秒数を返す
+   */
+  const getDurationForSessionType = useCallback(
+    (sessionType: SessionType): number => {
+      switch (sessionType) {
+        case 'work':
+          return settings.timer.pomodoroDuration * 60;
+        case 'shortBreak':
+          return settings.timer.shortBreakDuration * 60;
+        case 'longBreak':
+          return settings.timer.longBreakDuration * 60;
+      }
+    },
+    [settings.timer.pomodoroDuration, settings.timer.shortBreakDuration, settings.timer.longBreakDuration]
+  );
+
+  /**
+   * タイマー状態をlocalStorageから復元（初回のみ）
+   */
+  useEffect(() => {
+    if (restoredRef.current) return;
+    restoredRef.current = true;
+
+    const saved = loadTimerState();
+    if (!saved) return;
+
+    // 復元された状態を適用
+    useTimerStore.setState({
+      mode: saved.mode,
+      remainingSeconds: saved.remainingSeconds,
+      isRunning: false, // 復元後は一時停止状態にする
+      isPaused: saved.isRunning || saved.isPaused,
+      currentSessionType: saved.currentSessionType,
+      currentCycle: saved.currentCycle,
+    });
+  }, []);
+
+  /**
+   * タイマー状態の変更をlocalStorageに保存
+   */
+  useEffect(() => {
+    if (!restoredRef.current) return;
+
+    if (isRunning || isPaused) {
+      saveTimerState({
+        mode,
+        remainingSeconds,
+        isRunning,
+        isPaused,
+        currentSessionType,
+        currentCycle,
+      });
+    } else {
+      clearTimerState();
+    }
+  }, [mode, remainingSeconds, isRunning, isPaused, currentSessionType, currentCycle]);
 
   /**
    * 次のセッションタイプを取得
@@ -55,12 +115,7 @@ export function useTimer() {
     startTimeRef.current = Date.now();
 
     if (mode === 'pomodoro') {
-      const plannedDuration =
-        currentSessionType === 'work'
-          ? settings.timer.pomodoroDuration * 60
-          : currentSessionType === 'shortBreak'
-          ? settings.timer.shortBreakDuration * 60
-          : settings.timer.longBreakDuration * 60;
+      const plannedDuration = getDurationForSessionType(currentSessionType);
 
       const id = await addSession({
         type: currentSessionType,
@@ -72,7 +127,7 @@ export function useTimer() {
       });
       sessionIdRef.current = id;
     }
-  }, [mode, currentSessionType, currentCycle, settings, start, addSession]);
+  }, [mode, currentSessionType, currentCycle, start, addSession, getDurationForSessionType]);
 
   /**
    * タイマー完了時の処理
@@ -94,7 +149,7 @@ export function useTimer() {
       audioNotification.playTimerEndSound(settings.notification.soundVolume);
     }
 
-    if (settings.notification.browserNotificationEnabled && mode === 'pomodoro') {
+    if (settings.notification.browserNotificationEnabled && mode !== 'stopwatch') {
       notifyTimerEnd(currentSessionType);
     }
 
@@ -109,13 +164,7 @@ export function useTimer() {
       setCurrentSessionType(nextSessionType);
       setCurrentCycle(nextCycle);
 
-      const nextDuration =
-        nextSessionType === 'work'
-          ? settings.timer.pomodoroDuration * 60
-          : nextSessionType === 'shortBreak'
-          ? settings.timer.shortBreakDuration * 60
-          : settings.timer.longBreakDuration * 60;
-
+      const nextDuration = getDurationForSessionType(nextSessionType);
       setRemainingSeconds(nextDuration);
 
       const shouldAutoStart =
@@ -123,11 +172,13 @@ export function useTimer() {
         (nextSessionType === 'work' && settings.timer.autoStartPomodoros);
 
       if (shouldAutoStart) {
-        startTimer();
+        start();
+        startTimeRef.current = Date.now();
       } else {
         pause();
       }
     } else {
+      // フリーモード: 完了したら停止
       pause();
     }
   }, [
@@ -137,11 +188,12 @@ export function useTimer() {
     settings,
     updateSession,
     getNextSessionType,
+    getDurationForSessionType,
     setCurrentSessionType,
     setCurrentCycle,
     setRemainingSeconds,
     pause,
-    // startTimer is stable (useCallback), no need to include
+    start,
   ]);
 
   // タイマー終了の検知（tick処理はApp.tsxで一元管理）
@@ -166,7 +218,7 @@ export function useTimer() {
   };
 
   /**
-   * タイマーリセット
+   * タイマーリセット（設定値を使ってリセット）
    */
   const resetTimer = async () => {
     if (sessionIdRef.current && startTimeRef.current) {
@@ -180,7 +232,19 @@ export function useTimer() {
       sessionIdRef.current = null;
     }
 
-    reset();
+    // 現在のセッションタイプに応じた設定値でリセット
+    const durationMinutes =
+      mode === 'pomodoro'
+        ? (currentSessionType === 'work'
+            ? settings.timer.pomodoroDuration
+            : currentSessionType === 'shortBreak'
+            ? settings.timer.shortBreakDuration
+            : settings.timer.longBreakDuration)
+        : mode === 'free'
+        ? settings.timer.pomodoroDuration
+        : undefined;
+
+    reset(durationMinutes);
     startTimeRef.current = null;
   };
 

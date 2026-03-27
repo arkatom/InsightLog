@@ -1,11 +1,16 @@
 import { create } from 'zustand';
 import type { TimerMode } from '@/constants/timer';
 import type { SessionType } from '@/types/session';
+import {
+  DEFAULT_POMODORO_DURATION,
+  DEFAULT_SHORT_BREAK_DURATION,
+  DEFAULT_LONG_BREAK_DURATION,
+} from '@/constants/timer';
 
 interface TimerState {
   // タイマーモード
   mode: TimerMode;
-  setMode: (mode: TimerMode) => void;
+  setMode: (mode: TimerMode, durationMinutes?: number) => void;
 
   // タイマー状態
   remainingSeconds: number;
@@ -20,28 +25,45 @@ interface TimerState {
   start: () => void;
   pause: () => void;
   resume: () => void;
-  reset: () => void;
+  reset: (durationMinutes?: number) => void;
   tick: () => void;
   setRemainingSeconds: (seconds: number) => void;
   setCurrentSessionType: (type: SessionType) => void;
   setCurrentCycle: (cycle: number) => void;
 }
 
+/**
+ * セッションタイプに応じたデフォルト秒数を返す
+ */
+function getDefaultDuration(sessionType: SessionType): number {
+  switch (sessionType) {
+    case 'work':
+      return DEFAULT_POMODORO_DURATION * 60;
+    case 'shortBreak':
+      return DEFAULT_SHORT_BREAK_DURATION * 60;
+    case 'longBreak':
+      return DEFAULT_LONG_BREAK_DURATION * 60;
+  }
+}
+
 export const useTimerStore = create<TimerState>((set, get) => ({
   // 初期状態
   mode: 'pomodoro',
-  remainingSeconds: 25 * 60,
+  remainingSeconds: DEFAULT_POMODORO_DURATION * 60,
   isRunning: false,
   isPaused: false,
   currentSessionType: 'work',
   currentCycle: 1,
 
-  // モード変更
-  setMode: (mode) => {
+  // モード変更（durationMinutesで設定値を受け取れる）
+  setMode: (mode, durationMinutes) => {
     set({ mode, isRunning: false, isPaused: false });
-    // モード変更時にタイマーをリセット
     if (mode === 'pomodoro') {
-      set({ remainingSeconds: 25 * 60, currentSessionType: 'work', currentCycle: 1 });
+      const seconds = (durationMinutes ?? DEFAULT_POMODORO_DURATION) * 60;
+      set({ remainingSeconds: seconds, currentSessionType: 'work', currentCycle: 1 });
+    } else if (mode === 'free') {
+      const seconds = (durationMinutes ?? DEFAULT_POMODORO_DURATION) * 60;
+      set({ remainingSeconds: seconds });
     } else if (mode === 'stopwatch') {
       set({ remainingSeconds: 0 });
     }
@@ -62,14 +84,19 @@ export const useTimerStore = create<TimerState>((set, get) => ({
     set({ isRunning: true, isPaused: false });
   },
 
-  // リセット
-  reset: () => {
+  // リセット（durationMinutesでユーザー設定値を受け取れる）
+  reset: (durationMinutes) => {
     const { mode, currentSessionType } = get();
     set({ isRunning: false, isPaused: false });
 
     if (mode === 'pomodoro') {
-      const duration = currentSessionType === 'work' ? 25 * 60 : 5 * 60;
-      set({ remainingSeconds: duration });
+      const seconds = durationMinutes
+        ? durationMinutes * 60
+        : getDefaultDuration(currentSessionType);
+      set({ remainingSeconds: seconds });
+    } else if (mode === 'free') {
+      const seconds = (durationMinutes ?? DEFAULT_POMODORO_DURATION) * 60;
+      set({ remainingSeconds: seconds });
     } else if (mode === 'stopwatch') {
       set({ remainingSeconds: 0 });
     }
@@ -83,7 +110,7 @@ export const useTimerStore = create<TimerState>((set, get) => ({
       // ストップウォッチはカウントアップ
       set({ remainingSeconds: remainingSeconds + 1 });
     } else {
-      // その他はカウントダウン
+      // ポモドーロ・フリーはカウントダウン
       if (remainingSeconds > 0) {
         set({ remainingSeconds: remainingSeconds - 1 });
       }
