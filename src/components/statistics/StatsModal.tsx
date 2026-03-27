@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { StatsSummary } from './StatsSummary';
@@ -7,7 +7,7 @@ import { CategoryChart } from './CategoryChart';
 import { TimelineChart } from './TimelineChart';
 import { useStatistics } from '@/hooks/useStatistics';
 import { downloadKPICSV } from '@/lib/export';
-import { seedSampleData } from '@/lib/sampleData';
+import { seedSampleData, deleteSampleData, hasSampleData } from '@/lib/sampleData';
 import { toast } from 'sonner';
 import type { DateRange } from '@/types/statistics';
 
@@ -18,7 +18,13 @@ interface StatsModalProps {
 
 export function StatsModal({ isOpen, onClose }: StatsModalProps) {
   const [dateRange, setDateRange] = useState<DateRange>('today');
-  const stats = useStatistics(dateRange);
+  const [excludeSample, setExcludeSample] = useState(false);
+  const [sampleDataExists, setSampleDataExists] = useState(false);
+  const stats = useStatistics(dateRange, excludeSample);
+
+  useEffect(() => {
+    hasSampleData().then(setSampleDataExists);
+  }, []);
 
   const dateRanges: { value: DateRange; label: string }[] = [
     { value: 'today', label: '今日' },
@@ -98,21 +104,52 @@ export function StatsModal({ isOpen, onClose }: StatsModalProps) {
         {/* 時系列グラフ */}
         {stats.daily.length > 0 && dateRange !== 'all' && <TimelineChart data={stats.daily} />}
 
+        {/* サンプルデータ除外トグル */}
+        {sampleDataExists && stats.basic.totalTasks > 0 && (
+          <div className="flex items-center justify-between bg-primary-50 rounded-lg p-3">
+            <span className="text-xs text-primary-600">サンプルデータを除外</span>
+            <input
+              type="checkbox"
+              checked={excludeSample}
+              onChange={(e) => setExcludeSample(e.target.checked)}
+              className="w-4 h-4 rounded text-accent-500"
+            />
+          </div>
+        )}
+
         {/* データなしメッセージ */}
         {stats.basic.totalTasks === 0 && (
           <div className="text-center py-12">
             <p className="text-primary-400">この期間にはタスクが記録されていません</p>
             <p className="text-xs text-primary-400 mt-2 mb-6">タスクを記録すると、統計が表示されます</p>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={async () => {
-                await seedSampleData();
-                toast.success('サンプルデータを読み込みました（32件）');
-              }}
-            >
-              サンプルデータで試す
-            </Button>
+            <div className="flex gap-2 justify-center">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={async () => {
+                  await seedSampleData();
+                  setSampleDataExists(true);
+                  toast.success('サンプルデータを読み込みました（約90件）');
+                }}
+              >
+                サンプルデータで試す
+              </Button>
+              {sampleDataExists && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-warning-600 hover:bg-warning-100"
+                  onClick={async () => {
+                    const result = await deleteSampleData();
+                    setSampleDataExists(false);
+                    setExcludeSample(false);
+                    toast.success(`サンプルデータを削除しました（${result.tasks}件）`);
+                  }}
+                >
+                  サンプルを削除
+                </Button>
+              )}
+            </div>
           </div>
         )}
       </div>

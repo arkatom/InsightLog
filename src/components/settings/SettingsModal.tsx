@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Upload, Trash2, FileText, FileJson, FileSpreadsheet, Download, Volume2, Bell } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { Modal } from '@/components/ui/Modal';
@@ -14,7 +14,7 @@ import {
   importDataFromJSON,
   deleteAllData,
 } from '@/lib/export';
-import { seedSampleData } from '@/lib/sampleData';
+import { seedSampleData, deleteSampleData, hasSampleData } from '@/lib/sampleData';
 import { audioNotification } from '@/lib/audio';
 import { requestNotificationPermission, showNotification, vibrate } from '@/lib/notification';
 import { toast } from 'sonner';
@@ -50,6 +50,11 @@ function SettingsModalInner({
   const [timerSettings, setTimerSettings] = useState(settings.timer);
   const [notificationSettings, setNotificationSettings] = useState(settings.notification);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [sampleDataExists, setSampleDataExists] = useState(false);
+
+  useEffect(() => {
+    hasSampleData().then(setSampleDataExists);
+  }, []);
 
   const handleInstall = async () => {
     const installed = await promptInstall();
@@ -460,18 +465,36 @@ function SettingsModalInner({
             {/* サンプルデータ */}
             <div className="bg-primary-50 rounded-lg p-3">
               <h4 className="text-xs font-medium text-primary-700 mb-1">サンプルデータ</h4>
-              <p className="text-xs text-primary-500 mb-2">2週間分のデモ用データを読み込みます（32件のタスク）</p>
-              <Button
-                onClick={async () => {
-                  await seedSampleData();
-                  toast.success('サンプルデータを読み込みました');
-                }}
-                variant="secondary"
-                size="sm"
-                className="w-full"
-              >
-                サンプルデータを読み込む
-              </Button>
+              <p className="text-xs text-primary-500 mb-2">2ヶ月分のデモ用データを読み込みます（約90件のタスク）</p>
+              <div className="flex gap-2">
+                <Button
+                  onClick={async () => {
+                    await seedSampleData();
+                    setSampleDataExists(true);
+                    toast.success('サンプルデータを読み込みました');
+                  }}
+                  variant="secondary"
+                  size="sm"
+                  className="flex-1"
+                >
+                  読み込む
+                </Button>
+                {sampleDataExists && (
+                  <Button
+                    onClick={async () => {
+                      const result = await deleteSampleData();
+                      setSampleDataExists(false);
+                      toast.success(`サンプルデータを削除しました（${result.tasks}件）`);
+                    }}
+                    variant="ghost"
+                    size="sm"
+                    className="flex-1 text-warning-600 hover:bg-warning-100"
+                  >
+                    <Trash2 size={14} className="mr-1" />
+                    削除
+                  </Button>
+                )}
+              </div>
             </div>
 
             {/* エクスポート */}

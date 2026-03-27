@@ -27,13 +27,17 @@ import { AI_NOT_USED } from '@/constants/aiTools';
 /**
  * 統計データを計算するカスタムフック
  */
-export function useStatistics(dateRange: DateRange = 'today') {
+export function useStatistics(dateRange: DateRange = 'today', excludeSample: boolean = false) {
   const { tasks } = useTasks();
   const { sessions } = useSessions();
 
   const statistics = useMemo<Statistics>(() => {
+    // サンプルデータ除外
+    const baseTasks = excludeSample ? tasks.filter((t) => !t.isSample) : tasks;
+    const baseSessions = excludeSample ? sessions.filter((s) => !s.isSample) : sessions;
+
     // 期間でフィルタ
-    const filteredTasks = tasks.filter((task) => {
+    const filteredTasks = baseTasks.filter((task) => {
       const taskDate = task.completedAt;
       if (!taskDate) return false; // null チェック
       switch (dateRange) {
@@ -50,7 +54,7 @@ export function useStatistics(dateRange: DateRange = 'today') {
       }
     });
 
-    const filteredSessions = sessions.filter((session) => {
+    const filteredSessions = baseSessions.filter((session) => {
       const sessionDate = session.startedAt;
       switch (dateRange) {
         case 'today':
@@ -192,7 +196,7 @@ export function useStatistics(dateRange: DateRange = 'today') {
       daily,
       aiToolBreakdown,
     };
-  }, [tasks, sessions, dateRange]);
+  }, [tasks, sessions, dateRange, excludeSample]);
 
   return statistics;
 }

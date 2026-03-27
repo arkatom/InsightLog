@@ -11,4 +11,5 @@ export interface Task {
   notes: string;                 // 振り返りメモ
   createdAt: Date;               // 作成日時
   completedAt: Date | null;      // 完了日時（未完了の場合はnull）
+  isSample?: boolean;            // サンプルデータフラグ
 }

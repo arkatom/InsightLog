@@ -9,4 +9,5 @@ export interface PomodoroSession {
   completedAt: Date | null;      // 完了日時（null = 未完了）
   interrupted: boolean;          // 途中で中断されたか
   cycleNumber: number;           // サイクル番号
+  isSample?: boolean;            // サンプルデータフラグ
 }
