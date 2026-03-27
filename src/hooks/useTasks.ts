@@ -62,7 +62,7 @@ export function useTasks() {
    * AI使用/不使用でフィルタ
    */
   const getTasksByAiUsage = async (aiUsed: boolean): Promise<Task[]> => {
-    return await db.tasks.where('aiUsed').equals(aiUsed ? 1 : 0).toArray();
+    return await db.tasks.filter((task) => task.aiUsed === aiUsed).toArray();
   };
 
   /**

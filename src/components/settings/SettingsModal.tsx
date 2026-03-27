@@ -1,9 +1,10 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { Upload, Trash2, FileText, FileJson, FileSpreadsheet, Download, Volume2, Bell } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { useSettings } from '@/hooks/useSettings';
+import type { AppSettings } from '@/types/settings';
 import { useStatistics } from '@/hooks/useStatistics';
 import { useInstallPrompt } from '@/hooks/useInstallPrompt';
 import {
@@ -24,7 +25,23 @@ interface SettingsModalProps {
 }
 
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
-  const { settings, updateSettings } = useSettings();
+  const { settings, updateSettings, isInitialized } = useSettings();
+
+  // settings が初期化されるまで内部コンポーネントをレンダリングしない
+  if (!isInitialized) return null;
+
+  return <SettingsModalInner isOpen={isOpen} onClose={onClose} settings={settings} updateSettings={updateSettings} />;
+}
+
+function SettingsModalInner({
+  isOpen,
+  onClose,
+  settings,
+  updateSettings,
+}: SettingsModalProps & {
+  settings: AppSettings;
+  updateSettings: (updates: Partial<AppSettings>) => Promise<void>;
+}) {
   const stats = useStatistics('all');
   const { canInstall, isInstalled, promptInstall } = useInstallPrompt();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -33,11 +50,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [timerSettings, setTimerSettings] = useState(settings.timer);
   const [notificationSettings, setNotificationSettings] = useState(settings.notification);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-
-  // settingsが非同期で読み込まれるため、初期値を同期
-  useEffect(() => {
-    setMemberName(settings.memberId);
-  }, [settings.memberId]);
 
   const handleInstall = async () => {
     const installed = await promptInstall();
@@ -56,9 +68,13 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     toast.success('メンバー名を保存しました');
   };
 
-  const handleSaveSettings = () => {
-    updateSettings({ timer: timerSettings, notification: notificationSettings });
-    toast.success('設定を保存しました');
+  const handleSaveSettings = async () => {
+    try {
+      await updateSettings({ timer: timerSettings, notification: notificationSettings });
+      toast.success('設定を保存しました');
+    } catch {
+      toast.error('設定の保存に失敗しました');
+    }
   };
 
   const handleTestSound = () => {

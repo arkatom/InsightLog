@@ -20,7 +20,6 @@ export interface AppSettings {
   timer: TimerSettings;
   notification: NotificationSettings;
   customCategories: string[];    // ユーザー定義カテゴリ
-  onboardingCompleted: boolean;  // オンボーディング完了フラグ
   lastBackupDate: Date | null;   // 最終バックアップ日
   showTimer?: boolean;           // タイマーセクションの表示（デフォルト: true）
 }
@@ -41,7 +40,6 @@ export const DEFAULT_SETTINGS: Omit<AppSettings, 'memberId'> = {
     vibrationEnabled: false
   },
   customCategories: [],
-  onboardingCompleted: false,
   lastBackupDate: null,
   showTimer: true,
 };
