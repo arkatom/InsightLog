@@ -16,25 +16,20 @@
     "test:e2e:headed": "playwright test --headed"
   },
   "dependencies": {
-    "@esbuild/linux-arm64": "^0.27.4",
-    "@rollup/rollup-linux-arm64-gnu": "^4.59.1",
-    "@tailwindcss/postcss": "^4.1.18",
     "date-fns": "^4.1.0",
     "dexie": "^4.2.1",
     "dexie-react-hooks": "^4.2.0",
-    "lightningcss-linux-arm64-gnu": "^1.32.0",
     "lucide-react": "^0.563.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "recharts": "^3.7.0",
     "sonner": "^2.0.7",
-    "tailwindcss": "^4.1.18",
-    "vite-plugin-pwa": "^1.2.0",
     "zustand": "^5.0.10"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
     "@playwright/test": "^1.58.0",
+    "@tailwindcss/postcss": "^4.1.18",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^24.10.1",
@@ -49,9 +44,11 @@
     "globals": "^16.5.0",
     "jsdom": "^27.0.1",
     "prettier": "^3.8.1",
+    "tailwindcss": "^4.1.18",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.4",
     "vite": "^7.2.4",
+    "vite-plugin-pwa": "^1.2.0",
     "vitest": "^3.2.4"
   }
 }
