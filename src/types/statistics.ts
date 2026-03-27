@@ -47,6 +47,16 @@ export interface DailyStats {
 }
 
 /**
+ * AIツール別統計
+ */
+export interface AIToolStats {
+  tool: string;
+  count: number;
+  averageDuration: number; // 分
+  totalDuration: number; // 分
+}
+
+/**
  * 期間範囲
  */
 export type DateRange = 'today' | 'week' | 'month' | 'all';
@@ -60,4 +70,5 @@ export interface Statistics {
   aiComparison: AIComparisonStats;
   categories: CategoryStats[];
   daily: DailyStats[];
+  aiToolBreakdown: AIToolStats[];
 }

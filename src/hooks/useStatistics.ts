@@ -20,7 +20,9 @@ import type {
   AIComparisonStats,
   CategoryStats,
   DailyStats,
+  AIToolStats,
 } from '@/types/statistics';
+import { AI_NOT_USED } from '@/constants/aiTools';
 
 /**
  * 統計データを計算するカスタムフック
@@ -157,12 +159,38 @@ export function useStatistics(dateRange: DateRange = 'today') {
       });
     }
 
+    // AIツール別統計
+    const toolMap = new Map<string, { count: number; duration: number }>();
+
+    filteredTasks.forEach((task) => {
+      if (task.aiToolsUsed && task.aiToolsUsed.length > 0) {
+        task.aiToolsUsed.forEach((tool) => {
+          if (tool === AI_NOT_USED) return;
+          const current = toolMap.get(tool) || { count: 0, duration: 0 };
+          toolMap.set(tool, {
+            count: current.count + 1,
+            duration: current.duration + task.duration,
+          });
+        });
+      }
+    });
+
+    const aiToolBreakdown: AIToolStats[] = Array.from(toolMap.entries())
+      .map(([tool, data]) => ({
+        tool,
+        count: data.count,
+        averageDuration: Math.round(data.duration / data.count),
+        totalDuration: data.duration,
+      }))
+      .sort((a, b) => b.count - a.count);
+
     return {
       dateRange,
       basic,
       aiComparison,
       categories,
       daily,
+      aiToolBreakdown,
     };
   }, [tasks, sessions, dateRange]);
 

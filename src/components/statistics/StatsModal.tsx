@@ -76,6 +76,25 @@ export function StatsModal({ isOpen, onClose }: StatsModalProps) {
         {/* カテゴリ別グラフ */}
         {stats.categories.length > 0 && <CategoryChart data={stats.categories} />}
 
+        {/* AIツール別統計 */}
+        {stats.aiToolBreakdown.length > 0 && (
+          <div className="bg-white rounded-lg p-4">
+            <h3 className="text-sm font-medium text-primary-700 mb-3">AIツール別統計</h3>
+            <div className="space-y-2">
+              {stats.aiToolBreakdown.map((tool) => (
+                <div key={tool.tool} className="flex items-center justify-between p-2 bg-primary-50 rounded-lg">
+                  <span className="text-sm font-medium text-primary-800">{tool.tool}</span>
+                  <div className="flex gap-4 text-xs text-primary-500">
+                    <span>{tool.count}件</span>
+                    <span>平均{tool.averageDuration}分</span>
+                    <span>計{tool.totalDuration}分</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* 時系列グラフ */}
         {stats.daily.length > 0 && dateRange !== 'all' && <TimelineChart data={stats.daily} />}
 

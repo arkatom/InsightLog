@@ -42,9 +42,8 @@ export function CategoryChart({ data }: CategoryChartProps) {
               ))}
             </Pie>
             <Tooltip
-              formatter={(value: number | undefined) => {
-                if (value === undefined) return ['0分', '所要時間'];
-                return [`${value}分`, '所要時間'];
+              formatter={(value) => {
+                return [`${value ?? 0}分`, '所要時間'];
               }}
               contentStyle={{
                 backgroundColor: '#fff',
