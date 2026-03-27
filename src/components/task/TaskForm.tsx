@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Clock, RotateCcw, Link as LinkIcon, Info } from 'lucide-react';
+import { Clock, RotateCcw, Link as LinkIcon, Info, X } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -49,6 +49,7 @@ export function TaskForm() {
     };
 
     fetchTodayDuration();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- durationの変更で再取得は不要
   }, [getTodaySessions]);
 
   const handleCategoryToggle = (category: string) => {
@@ -115,6 +116,17 @@ export function TaskForm() {
     setCustomCategory('');
     toast.success(`カテゴリ「${newCategory}」を追加しました`);
   };
+
+  const handleDeleteCustomCategory = (category: string) => {
+    updateSettings({
+      customCategories: (settings.customCategories || []).filter((c) => c !== category),
+    });
+    setSelectedCategories((prev) => prev.filter((c) => c !== category));
+    toast.success(`カテゴリ「${category}」を削除しました`);
+  };
+
+  const isCustomCategory = (cat: string) =>
+    (settings.customCategories || []).includes(cat);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -290,17 +302,29 @@ export function TaskForm() {
           <p className="text-sm text-primary-500 mb-2">カテゴリ</p>
           <div className="flex flex-wrap gap-2">
             {allCategories.map((cat) => (
-              <label key={cat} className="cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="peer hidden"
-                  checked={selectedCategories.includes(cat)}
-                  onChange={() => handleCategoryToggle(cat)}
-                />
-                <span className="px-3 py-1.5 bg-primary-100 rounded-full text-sm text-primary-600 peer-checked:bg-primary-800 peer-checked:text-white transition-colors">
-                  {cat}
-                </span>
-              </label>
+              <div key={cat} className="flex items-center gap-0.5">
+                <label className="cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="peer hidden"
+                    checked={selectedCategories.includes(cat)}
+                    onChange={() => handleCategoryToggle(cat)}
+                  />
+                  <span className="px-3 py-1.5 bg-primary-100 rounded-full text-sm text-primary-600 peer-checked:bg-primary-800 peer-checked:text-white transition-colors">
+                    {cat}
+                  </span>
+                </label>
+                {isCustomCategory(cat) && (
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteCustomCategory(cat)}
+                    className="p-0.5 text-primary-400 hover:text-red-500 transition-colors"
+                    title={`カテゴリ「${cat}」を削除`}
+                  >
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
             ))}
           </div>
 

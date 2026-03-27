@@ -1,13 +1,14 @@
-import { Sparkles, ExternalLink } from 'lucide-react';
+import { Sparkles, ExternalLink, Trash2 } from 'lucide-react';
 import type { Task } from '@/types/task';
 import { Badge } from '@/components/ui/Badge';
 import { formatMinutes } from '@/lib/time';
 
 interface TaskItemProps {
   task: Task;
+  onDelete?: (id: string) => void;
 }
 
-export function TaskItem({ task }: TaskItemProps) {
+export function TaskItem({ task, onDelete }: TaskItemProps) {
   return (
     <div className="p-4 bg-primary-50 rounded-lg mb-3 hover:bg-primary-100 transition-colors">
       <div className="flex justify-between items-start mb-2">
@@ -25,7 +26,18 @@ export function TaskItem({ task }: TaskItemProps) {
             </a>
           )}
         </div>
-        <span className="text-sm text-primary-400 ml-2">{formatMinutes(task.duration)}</span>
+        <div className="flex items-center gap-2 ml-2">
+          <span className="text-sm text-primary-400">{formatMinutes(task.duration)}</span>
+          {onDelete && (
+            <button
+              onClick={() => onDelete(task.id)}
+              className="p-1 text-primary-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+              title="削除"
+            >
+              <Trash2 size={14} />
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="flex gap-2 mb-2 flex-wrap">

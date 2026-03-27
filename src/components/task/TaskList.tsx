@@ -1,6 +1,7 @@
 import { Modal } from '@/components/ui/Modal';
 import { TaskItem } from './TaskItem';
 import { useTasks } from '@/hooks/useTasks';
+import { toast } from 'sonner';
 
 interface TaskListProps {
   isOpen: boolean;
@@ -8,7 +9,16 @@ interface TaskListProps {
 }
 
 export function TaskList({ isOpen, onClose }: TaskListProps) {
-  const { tasks } = useTasks();
+  const { tasks, deleteTask } = useTasks();
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteTask(id);
+      toast.success('タスクを削除しました');
+    } catch {
+      toast.error('タスクの削除に失敗しました');
+    }
+  };
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="タスク一覧">
@@ -19,7 +29,7 @@ export function TaskList({ isOpen, onClose }: TaskListProps) {
       ) : (
         <div>
           {tasks.map((task) => (
-            <TaskItem key={task.id} task={task} />
+            <TaskItem key={task.id} task={task} onDelete={handleDelete} />
           ))}
         </div>
       )}
