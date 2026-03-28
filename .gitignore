@@ -58,3 +58,5 @@ base_template/
 .playwright-browsers/
 .gh-config/
 .npm-cache/
+
+.claude/settings.local.json
