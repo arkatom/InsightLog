@@ -2,6 +2,10 @@
 
 ポモドーロタイマー付きタスク振り返りアプリ。AI活用度の記録・分析機能を持つ。
 
+## 必須読み込み
+
+- [SOUL憲法](.claude/instructions/core/soul.md)
+
 ## テックスタック
 
 - React 19 + TypeScript（Vite 7）
@@ -26,17 +30,18 @@
 - `src/components/timer/` — タイマー関連UI
 - `src/components/task/` — タスク記録関連UI（TaskForm, TaskList, TaskItem）
 - `src/components/statistics/` — 統計・分析UI
-- `src/components/report/` — レポートUI（ReportModal, RoiDashboard 等）
 - `src/hooks/` — カスタムフック（useTimer, useTasks, useSessions 等）
 - `src/store/` — Zustand ストア（timerStore）
-- `src/lib/` — ユーティリティ（db, time, export, uuid 等）
+- `src/lib/` — ユーティリティ（db, time, export, uuid, roiCalc 等）
 - `src/types/` — 型定義
 - `src/constants/` — 定数（timer, categories, aiTools）
-- `src/lib/` — ユーティリティ（db, time, export, uuid, roiCalc 等）
 - `e2e/` — Playwright E2Eテスト
 - `demo/` — デモ実行ハーネス（run.sh, issue.md, feature_list.json）
-- `.claude/agents/` — Ship-from-Issue 汎用 Sub-agent 定義（supervisor / implementer / test-writer / e2e-planner / e2e-runner / committer / pr-creator / pr-reviewer）
+- `.claude/agents/` — Ship-from-Issue 汎用 Sub-agent 定義
 - `.claude/commands/` — スラッシュコマンド（/ship-from-issue, /cleanup, /show-log）
+- `.claude/skills/` — スキル定義（team, planner-team, reviewer-team, reflection, heartbeat, kaizen）
+- `.claude/instructions/core/` — 絶対厳守事項（base.md）、SOUL憲法（soul.md）
+- `.claude/memory/` — スキル出力（heartbeat/改善ログ、reflection/振り返り）
 
 ## コード規約
 
