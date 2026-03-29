@@ -20,12 +20,13 @@ const lines = csvContent.split('\n').filter((line) => line.trim() !== '');
 const trainees = lines.slice(1).map((line, index) => {
   // ダブルクォートを考慮した簡易パース
   const values = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
-  if (!values || values.length < 3) {
+  if (!values || values.length < 5) {
     console.error(`エラー: ${index + 2}行目のフォーマットが不正です: ${line}`);
+    console.error('必要な列: name,email,api_key,github_username,github_password');
     process.exit(1);
   }
   const cleaned = values.map((v) => v.replace(/(^"|"$)/g, ''));
-  return { name: cleaned[0], email: cleaned[1], apiKey: cleaned[2] };
+  return { name: cleaned[0], email: cleaned[1], apiKey: cleaned[2], githubUsername: cleaned[3], githubPassword: cleaned[4] };
 });
 
 const baseDir = path.join(projectRoot, 'base_template');
@@ -52,7 +53,7 @@ trainees.forEach((trainee) => {
   execSync(`cp -r "${baseDir}" "${tempDir}"`);
 
   // 個別 .env の作成（全値をダブルクォートで囲み、source 時の安全性を確保）
-  const envContent = `ANTHROPIC_API_KEY="${trainee.apiKey}"\nTRAINEE_NAME="${trainee.name}"\nTRAINEE_EMAIL="${trainee.email}"\n`;
+  const envContent = `ANTHROPIC_API_KEY="${trainee.apiKey}"\nTRAINEE_NAME="${trainee.name}"\nTRAINEE_EMAIL="${trainee.email}"\nGITHUB_USERNAME="${trainee.githubUsername}"\nGITHUB_PASSWORD="${trainee.githubPassword}"\n`;
   fs.writeFileSync(path.join(tempDir, '.env'), envContent);
 
   // ZIP化と一時ディレクトリの削除

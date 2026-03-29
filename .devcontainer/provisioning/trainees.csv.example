@@ -1,3 +1,3 @@
-name,email,api_key
-"Taro Yamada",taro@example.com,sk-ant-xxxxx
-"Hanako Sato",hanako@example.com,sk-ant-yyyyy
+name,email,api_key,github_username,github_password
+"Taro Yamada",taro@example.com,sk-ant-xxxxx,taro_yamada,secret_password
+"Hanako Sato",hanako@example.com,sk-ant-yyyyy,hanako_sato,another_secret_password
