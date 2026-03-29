@@ -24,3 +24,12 @@
 - Expected impact: 命名・配置の後出し変更がゼロになる
 - Risk & rollback: 確認ステップが増えることで速度が落ちる可能性。soul.mdから該当行を削除するだけで元に戻せる
 - Status: applied
+
+## 2026-03-29 -- 外部ツール出力の未検証による誤情報伝達
+- Symptom: insight コマンドが提案した `claude --session` フラグが実在せず、ユーザーが実行してエラー（`error: unknown option '--session'`）が発生。誤った情報をそのまま中継してしまった
+- Root cause: procedure
+- Fix: 外部ツール（insight, /doctor 等）が出力した CLI コマンド・フラグを中継する前に、`claude --help` や公式ドキュメントで実在を確認するステップを挟む
+- Preventive check: 外部ツール出力に含まれるCLIコマンドを提示する際、`command --help | grep flag` で存在確認してから伝達する
+- Expected impact: ユーザーが誤コマンドでエラーに遭遇する頻度がゼロになる
+- Risk & rollback: 確認ステップにより応答が数秒遅れる。手順を省略するだけで元に戻せる
+- Status: proposed
