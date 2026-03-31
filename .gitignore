@@ -10,6 +10,7 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+dev-dist
 *.local
 
 # Editor directories and files
@@ -55,6 +56,7 @@ base_template/
 
 # Dev Container キャッシュ（/workspaces に書き出されるもの）
 .playwright-browsers/
+.playwright-mcp/
 .gh-config/
 .npm-cache/
 
