@@ -68,6 +68,7 @@ export default defineConfig({
       '@': resolve(__dirname, './src'),
     },
   },
+  publicDir: 'src/public',
   server: {
     host: true,
   },
