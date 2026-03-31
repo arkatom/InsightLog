@@ -21,5 +21,9 @@
       "Bash(claude /kaizen)"
     ]
   },
-  "plansDirectory": "docs/plans/"
+  "plansDirectory": "docs/plans/",
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "playwright"
+  ]
 }
