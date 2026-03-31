@@ -10,7 +10,8 @@ export default defineConfig({
     setupFiles: ['./src/tests/setup.ts'],
     exclude: [
       'node_modules/**',
-      'e2e/**',
+      '.npm-cache/**',
+      'src/e2e/**',
       '.claude/worktrees/**',
     ],
     coverage: {

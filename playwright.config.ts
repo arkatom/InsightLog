@@ -5,7 +5,7 @@ import { defineConfig, devices } from '@playwright/test';
  * Ship-from-Issue デモ用: ビデオ録画を有効化（.webm 形式で自動保存）
  */
 export default defineConfig({
-  testDir: './e2e',
+  testDir: './src/e2e',
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 1,

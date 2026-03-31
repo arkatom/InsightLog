@@ -15,7 +15,7 @@ import path from 'path';
  * - モーダルを閉じることができる
  */
 
-const SCREENSHOTS_DIR = path.join(__dirname, '../demo/screenshots');
+const SCREENSHOTS_DIR = path.join(__dirname, '../../demo/screenshots');
 
 test.describe('AI ROI ダッシュボード', () => {
   test.beforeEach(async ({ page }) => {
