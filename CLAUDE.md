@@ -35,7 +35,7 @@
 - `src/lib/` — ユーティリティ（db, time, export, uuid, roiCalc 等）
 - `src/types/` — 型定義
 - `src/constants/` — 定数（timer, categories, aiTools）
-- `e2e/` — Playwright E2Eテスト
+- `src/e2e/` — Playwright E2Eテスト
 - `demo/` — デモ実行ハーネス（run.sh, issue.md, feature_list.json）
 - `.claude/agents/` — Ship-from-Issue 汎用 Sub-agent 定義
 - `.claude/commands/` — スラッシュコマンド（/ship-from-issue, /cleanup, /show-log）

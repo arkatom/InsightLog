@@ -33,9 +33,9 @@ grep -r "aria-label\|role=\|data-testid\|getByRole\|getByText" src/ --include="*
 実装されたコンポーネントの JSX を読んで、Playwright でクリック/確認できる要素を特定する。
 `page.getByRole()` > `page.getByText()` > `page.locator()` の優先順で使う（アクセシビリティ対応）。
 
-### 3. `e2e/` 配下のテストファイルを作成する
+### 3. `src/e2e/` 配下のテストファイルを作成する
 
-既存の骨格ファイル（`e2e/*.spec.ts`）がある場合はそれを更新する。なければ新規作成する。
+既存の骨格ファイル（`src/e2e/*.spec.ts`）がある場合はそれを更新する。なければ新規作成する。
 
 テストの構成:
 ```typescript
