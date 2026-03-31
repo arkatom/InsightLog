@@ -3,5 +3,14 @@
   "explorer.fileNesting.expand": false,
   "explorer.fileNesting.patterns": {
     "package.json": "package-lock.json, tsconfig.json, tsconfig.*.json, vite.config.*, vitest.config.*, eslint.config.*, .prettierrc, playwright.config.*, index.html"
+  },
+  "files.exclude": {
+    "dist": true,
+    "dev-dist": true,
+    "node_modules": true,
+    ".playwright-mcp": true,
+    ".playwright-browsers": true,
+    ".npm-cache": true,
+    ".gh-config": true
   }
 }
