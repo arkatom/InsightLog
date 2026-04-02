@@ -21,6 +21,19 @@
       "Bash(claude /kaizen)"
     ]
   },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "mcp__playwright__browser_take_screenshot",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/open-screenshot.sh"
+          }
+        ]
+      }
+    ]
+  },
   "plansDirectory": "docs/plans/",
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
