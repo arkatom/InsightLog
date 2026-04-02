@@ -12,7 +12,7 @@
     "GH_CONFIG_DIR": "${containerWorkspaceFolder}/.gh-config",
     "NPM_CONFIG_CACHE": "${containerWorkspaceFolder}/.npm-cache"
   },
-  "postCreateCommand": "npm install && npx -y @playwright/mcp@latest >/dev/null 2>&1 && npx -y playwright install --with-deps chromium",
+  "postCreateCommand": "npm install && npx -y playwright install --with-deps chromium",
   "customizations": {
     "vscode": {
       "extensions": [
