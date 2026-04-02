@@ -1,19 +1,18 @@
 #!/bin/bash
 set -euo pipefail
 
-# .envファイルの読み込み（スペースや特殊文字を安全に処理）
+# .envファイルの読み込み（存在する場合のみ）
+# Codespace Secrets は環境変数として自動注入されるため .env がなくてもOK
 if [ -f .env ]; then
     set -a
     source .env
     set +a
-else
-    echo "エラー: .env ファイルが見つかりません。"
-    exit 1
 fi
 
 # 必須フィールドのバリデーション
 if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
-    echo "エラー: .env に ANTHROPIC_API_KEY が設定されていません。"
+    echo "エラー: ANTHROPIC_API_KEY が設定されていません。"
+    echo ".env ファイルまたは Codespace Secrets で設定してください。"
     exit 1
 fi
 
