@@ -81,4 +81,13 @@ else
     git push -u origin HEAD
 fi
 
+# 5. Codespaces アイドルタイムアウトを60分に設定
+if [ -n "${CODESPACES:-}" ]; then
+    echo "Codespaces のアイドルタイムアウトを60分に設定しています..."
+    gh api -X PATCH /user/codespaces/${CODESPACE_NAME} \
+        -f idle_timeout_minutes=60 2>/dev/null \
+        && echo "タイムアウト設定が完了しました。" \
+        || echo "警告: タイムアウト設定に失敗しました。GitHub Settings > Codespaces から手動で設定してください。"
+fi
+
 echo "セットアップが完了しました。開発を開始できます。"

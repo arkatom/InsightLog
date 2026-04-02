@@ -12,8 +12,7 @@
     "GH_CONFIG_DIR": "${containerWorkspaceFolder}/.gh-config",
     "NPM_CONFIG_CACHE": "${containerWorkspaceFolder}/.npm-cache"
   },
-  "postCreateCommand": "npm install && npx playwright install --with-deps chromium",
-  "postStartCommand": "[ -n \"$GITHUB_TOKEN\" ] && echo \"$GITHUB_TOKEN\" | gh auth login --with-token --hostname github.com --git-protocol https 2>/dev/null; gh auth setup-git 2>/dev/null || true",
+  "postCreateCommand": "npm install && npx -y @playwright/mcp@latest >/dev/null 2>&1 && npx -y playwright install --with-deps chromium",
   "customizations": {
     "vscode": {
       "extensions": [
