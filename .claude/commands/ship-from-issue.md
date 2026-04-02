@@ -69,6 +69,24 @@ git checkout -b <ブランチ名>
 全フェーズ完了で PR URL を出力する。
 GitHub Issue 番号がある場合、PR 本文に `Closes #<番号>` を含める。
 
+## Playwright MCP サーバーの使用（必須）
+
+**Playwright ライブラリ（`npx playwright test`）は使用禁止。** ブラウザ操作・スクリーンショット撮影はすべて Playwright MCP サーバー経由で行うこと。
+
+### ルール
+
+1. `npx playwright test` や `@playwright/test` を直接使わない
+2. ブラウザ操作は `mcp__playwright__browser_*` ツールのみ使用する
+3. `browser_take_screenshot` 呼び出し時は **必ず `filename` パラメータを指定する**
+   - 形式: `demo/screenshots/[連番]_[説明].png`（例: `demo/screenshots/01_home.png`）
+   - `filename` 未指定のスクリーンショットは PostToolUse hook で VS Code プレビューに表示できない
+4. e2e-planner は `.spec.ts` ではなく **MCP 実行用テスト計画**（`src/e2e/test-plan.md`）を作成する
+5. e2e-runner はテスト計画を読み、MCP ツールで各ステップを手動実行する
+
+### スクリーンショットの自動プレビュー
+
+`browser_take_screenshot` 実行後、PostToolUse hook が発火し VS Code のエディタタブにスクリーンショットが自動表示される。受講者はタブを見るだけで Claude が確認している画面を把握できる。
+
 ## Agent 起動の共通ルール
 
 - プロンプトに Issue 概要・ブランチ名を含める

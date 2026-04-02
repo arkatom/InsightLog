@@ -13,7 +13,7 @@
 - Zustand（状態管理）+ Dexie.js（IndexedDB）
 - Recharts（統計グラフ）+ date-fns
 - Vitest + React Testing Library（ユニットテスト）
-- Playwright（E2Eテスト・ビデオ録画）
+- Playwright MCP サーバー（E2Eテスト・スクリーンショット撮影）
 - PWA対応（vite-plugin-pwa）
 
 ## 開発コマンド
@@ -21,7 +21,7 @@
 - `npm run dev` — 開発サーバー起動
 - `npm run build` — 本番ビルド（tsc + vite build）
 - `npm run test` — Vitest ユニットテスト実行
-- `npm run test:e2e` — Playwright E2Eテスト実行（ビデオ録画付き）
+- E2Eテストは Playwright MCP サーバー経由で実行（`npx playwright test` は使用禁止）
 - `npm run lint` — ESLint
 
 ## ディレクトリ構成
@@ -35,7 +35,7 @@
 - `src/lib/` — ユーティリティ（db, time, export, uuid, roiCalc 等）
 - `src/types/` — 型定義
 - `src/constants/` — 定数（timer, categories, aiTools）
-- `src/e2e/` — Playwright E2Eテスト
+- `src/e2e/` — E2Eテスト計画（Playwright MCP 実行用）
 - `demo/` — デモ実行ハーネス（run.sh, issue.md, feature_list.json）
 - `.claude/agents/` — Ship-from-Issue 汎用 Sub-agent 定義
 - `.claude/commands/` — スラッシュコマンド（/ship-from-issue, /cleanup, /show-log）
