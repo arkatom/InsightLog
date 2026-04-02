@@ -6,18 +6,20 @@
 #   2. tool_response 内のファイルパス（MCP サーバーが返したパス）
 #
 # 前提: jq がインストール済み（Dockerfile で追加済み）
-set -euo pipefail
+#
+# 注意: set -e は使わない。jq パースエラーや code コマンド失敗で
+# hook 全体が死ぬと Claude Code の動作に影響するため。
 
 # jq がなければ何もせず終了
 if ! command -v jq &>/dev/null; then
   exit 0
 fi
 
-INPUT=$(cat)
-CWD=$(echo "$INPUT" | jq -r '.cwd // empty')
+INPUT=$(cat) || exit 0
+CWD=$(echo "$INPUT" | jq -r '.cwd // empty' 2>/dev/null) || CWD=""
 
 # 1. tool_input.filename から取得（推奨パス）
-FILEPATH=$(echo "$INPUT" | jq -r '.tool_input.filename // empty')
+FILEPATH=$(echo "$INPUT" | jq -r '.tool_input.filename // empty' 2>/dev/null) || FILEPATH=""
 
 # 2. filename がなければ tool_response からパスを抽出
 if [ -z "$FILEPATH" ]; then
@@ -28,7 +30,7 @@ if [ -z "$FILEPATH" ]; then
         (match("[\\w/.\\-]+\\.(?:png|jpeg|jpg)") | .string) // empty
       else empty
       end
-  ' 2>/dev/null || true)
+  ' 2>/dev/null) || FILEPATH=""
 fi
 
 # パスが取れなければ終了
@@ -43,7 +45,6 @@ fi
 
 # VS Code でプレビュー表示（Codespaces では code コマンドが利用可能）
 if [ -f "$FILEPATH" ]; then
-  # code が使えなければ無視（CI環境等）
   code "$FILEPATH" 2>/dev/null || true
 fi
 

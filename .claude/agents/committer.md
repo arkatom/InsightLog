@@ -29,7 +29,7 @@ git diff --stat HEAD
 |---------|----------|------------|
 | 機能実装 | `src/lib/`, `src/components/`, `src/pages/` の新規・変更 | `feat` |
 | ユニットテスト | `src/tests/` | `test` |
-| E2Eテスト | `src/e2e/`, `playwright.config.ts` | `test` |
+| E2Eテスト計画 | `src/e2e/` | `test` |
 | 設定・依存 | `package.json`, `tsconfig.json` | `chore` |
 | ドキュメント | `*.md`, `CLAUDE.md` | `docs` |
 | デモハーネス | `demo/`, `claude-progress.txt` | `chore` |
