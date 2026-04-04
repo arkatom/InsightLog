@@ -13,7 +13,7 @@ description: |
 
 ### 1. 提案一覧の取得
 
-`.claude/memory/heartbeat/improvements.md` を読み、`Status: proposed` の項目を抽出する。
+`docs/memory/heartbeat/improvements.md` を読み、`Status: proposed` の項目を抽出する。
 
 - proposed が0件の場合: 「未レビューの提案はありません」と報告して終了
 - proposed がある場合: 一覧を簡潔に表示（日付、タイトル、Root cause、Fix の要約）
@@ -29,8 +29,8 @@ proposed の項目を1件ずつユーザーに提示し、AskUserQuestion で判
 ### 3. 採用時の処理
 
 #### 3a. ログ更新
-1. `.claude/memory/heartbeat/improvements.md` の該当項目の `Status: proposed` を `Status: applied` に更新
-2. `.claude/memory/heartbeat/decisions.md` に追記:
+1. `docs/memory/heartbeat/improvements.md` の該当項目の `Status: proposed` を `Status: applied` に更新
+2. `docs/memory/heartbeat/decisions.md` に追記:
 
 ```markdown
 ## YYYY-MM-DD -- 採用: {proposal title}
@@ -48,7 +48,7 @@ proposed の項目を1件ずつユーザーに提示し、AskUserQuestion で判
 
 ### 4. 却下時の処理
 
-1. `.claude/memory/heartbeat/improvements.md` の該当項目の `Status: proposed` を `Status: rejected -- {理由}` に更新
+1. `docs/memory/heartbeat/improvements.md` の該当項目の `Status: proposed` を `Status: rejected -- {理由}` に更新
 2. decisions.md への記録は不要
 
 ### 5. サマリー出力

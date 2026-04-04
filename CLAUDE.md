@@ -41,7 +41,7 @@
 - `.claude/commands/` — スラッシュコマンド（/ship-from-issue, /cleanup, /show-log）
 - `.claude/skills/` — スキル定義（team, planner-team, reviewer-team, reflection, heartbeat, kaizen）
 - `.claude/instructions/core/` — 絶対厳守事項（base.md）、SOUL憲法（soul.md）
-- `.claude/memory/` — スキル出力（heartbeat/改善ログ、reflection/振り返り）
+- `docs/memory/` — スキル出力（heartbeat/改善ログ、reflection/振り返り）
 
 ## コード規約
 

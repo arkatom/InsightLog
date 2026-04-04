@@ -2,7 +2,7 @@
 name: heartbeat
 description: |
   定期Heartbeat。直近のセッション活動を評価し、改善点があれば1件だけ
-  .claude/memory/heartbeat/improvements.mdに追記する。改善点がなければHEARTBEAT_OKを出力。
+  docs/memory/heartbeat/improvements.mdに追記する。改善点がなければHEARTBEAT_OKを出力。
   使用場面: セッション振り返り後、定期的な品質チェック、/loop 30m で自動実行。
 ---
 
@@ -19,15 +19,15 @@ description: |
 
 ### 1. 早期終了チェック
 
-`.claude/memory/reflection/` 内の最新ファイルの更新日時を確認する。
+`docs/memory/reflection/` 内の最新ファイルの更新日時を確認する。
 前回の Heartbeat（improvements.md の最終エントリの日付）以降に新しい振り返りがなければ:
 → `HEARTBEAT_OK` を出力して終了
 
 ### 2. 情報収集
 
 以下を読み込む（存在するもののみ）:
-- `.claude/memory/heartbeat/improvements.md` — 既存の改善ログ（重複提案の防止）
-- `.claude/memory/reflection/` 内の最新ファイル — 直近のセッション振り返り
+- `docs/memory/heartbeat/improvements.md` — 既存の改善ログ（重複提案の防止）
+- `docs/memory/reflection/` 内の最新ファイル — 直近のセッション振り返り
 - `git log --oneline -20` — 直近のコミット履歴
 
 ### 3. 摩擦検出
@@ -47,7 +47,7 @@ description: |
 ### 4. 改善ログ記入
 
 摩擦を検出した場合、[テンプレート](./references/improvement-template.md) に従い
-`.claude/memory/heartbeat/improvements.md` の末尾に **1件だけ** 追記する。
+`docs/memory/heartbeat/improvements.md` の末尾に **1件だけ** 追記する。
 
 複数検出した場合は **最もインパクトが大きい1件のみ** を選択する。
 
@@ -61,7 +61,7 @@ description: |
   ```
   HEARTBEAT_OK
   ```
-- 未レビューの proposed が3件以上溜まっている場合:
+- 未レビューの proposed が2件以上溜まっている場合:
   ```
   HEARTBEAT_OK (注意: 未レビューの提案が{N}件あります。/kaizen で確認してください)
   ```
