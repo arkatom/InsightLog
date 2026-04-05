@@ -93,6 +93,22 @@ export function useTimer() {
   }, [mode, remainingSeconds, isRunning, isPaused, currentSessionType, currentCycle]);
 
   /**
+   * 設定変更時にタイマー表示を即時反映（idle状態のみ）
+   */
+  useEffect(() => {
+    if (isRunning || isPaused) return;
+    if (mode === 'stopwatch') return;
+
+    const newSeconds = mode === 'pomodoro'
+      ? getDurationForSessionType(currentSessionType)
+      : settings.timer.pomodoroDuration * 60;
+
+    if (remainingSeconds !== newSeconds) {
+      setRemainingSeconds(newSeconds);
+    }
+  }, [settings.timer, mode, currentSessionType, isRunning, isPaused, getDurationForSessionType, remainingSeconds, setRemainingSeconds]);
+
+  /**
    * 次のセッションタイプを取得
    */
   const getNextSessionType = useCallback((): SessionType => {
