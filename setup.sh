@@ -1,6 +1,14 @@
 #!/bin/bash
 set -euo pipefail
 
+# オプション解析
+NO_API=false
+for arg in "$@"; do
+    case "$arg" in
+        --no-api) NO_API=true ;;
+    esac
+done
+
 # .envファイルの読み込み（存在する場合のみ）
 # Codespace Secrets は環境変数として自動注入されるため .env がなくてもOK
 if [ -f .env ]; then
@@ -9,16 +17,35 @@ if [ -f .env ]; then
     set +a
 fi
 
-# 必須フィールドのバリデーション
-if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
+# 必須フィールドのバリデーション（--no-api 時はスキップ）
+if [ "$NO_API" = false ] && [ -z "${ANTHROPIC_API_KEY:-}" ]; then
     echo "エラー: ANTHROPIC_API_KEY が設定されていません。"
     echo ".env ファイルまたは Codespace Secrets で設定してください。"
+    echo "（API キーなしで続行するには: bash setup.sh --no-api）"
     exit 1
 fi
 
 echo "=== 研修環境の初期セットアップを開始します ==="
 
-# 1. Claude Code のインストール（未インストールまたは動作しない場合のみ）
+# 1. npm 依存パッケージのインストール
+if [ -d "node_modules" ] && [ -f "node_modules/.package-lock.json" ]; then
+    echo "npm パッケージは既にインストール済みです。"
+else
+    echo "npm パッケージをインストールしています..."
+    npm install
+fi
+
+# 2. Playwright Chromium ブラウザのインストール
+BROWSERS_DIR="${PLAYWRIGHT_BROWSERS_PATH:-$(pwd)/.playwright-browsers}"
+export PLAYWRIGHT_BROWSERS_PATH="$BROWSERS_DIR"
+if [ -d "$BROWSERS_DIR" ] && [ "$(ls -A "$BROWSERS_DIR" 2>/dev/null)" ]; then
+    echo "Playwright Chromium は既にインストール済みです。"
+else
+    echo "Playwright Chromium ブラウザをインストールしています..."
+    npx -y -p @playwright/mcp@latest playwright install chromium
+fi
+
+# 3. Claude Code のインストール（未インストールまたは動作しない場合のみ）
 if claude -v >/dev/null 2>&1; then
     echo "Claude Code は既にインストール済みです。($(claude -v))"
 else
@@ -34,7 +61,7 @@ else
     fi
 fi
 
-# 2. GitHub CLI 認証（デバイスフロー）
+# 4. GitHub CLI 認証（デバイスフロー）
 if gh auth status >/dev/null 2>&1; then
     echo "すでにGitHubに認証済みです。"
 else
@@ -50,7 +77,7 @@ else
     echo "GitHubの認証が完了しました。"
 fi
 
-# 3. リポジトリの初期化と個別設定
+# 5. リポジトリの初期化と個別設定
 if [ ! -d ".git" ]; then
     echo "リポジトリを初期化しています..."
     git init
@@ -69,7 +96,7 @@ if [ ! -d ".git" ]; then
     git commit -m "Initial commit for InsightLog training"
 fi
 
-# 4. GitHub上へのプライベートリポジトリ自動作成とPush
+# 6. GitHub上へのプライベートリポジトリ自動作成とPush
 if ! git remote get-url origin >/dev/null 2>&1; then
     REPO_NAME="InsightLog-$(date +%s)"
     echo "プライベートリポジトリ ($REPO_NAME) を作成し、コードを送信します..."
@@ -80,7 +107,7 @@ else
     git push -u origin HEAD
 fi
 
-# 5. Codespaces アイドルタイムアウトを60分に設定
+# 7. Codespaces アイドルタイムアウトを60分に設定
 if [ -n "${CODESPACES:-}" ] && [ -n "${CODESPACE_NAME:-}" ]; then
     echo "Codespaces のアイドルタイムアウトを60分に設定しています..."
     gh api -X PATCH "/user/codespaces/${CODESPACE_NAME}" \
