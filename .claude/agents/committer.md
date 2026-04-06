@@ -25,6 +25,8 @@ git diff --stat HEAD
 
 ### 2. 変更をカテゴリに分類
 
+`src/` ベースの TypeScript リポジトリ向けデフォルト分類（プロジェクト構成が異なる場合は呼び出し元から指示を受け取って調整する）:
+
 | カテゴリ | ファイル例 | プレフィックス |
 |---------|----------|------------|
 | 機能実装 | `src/lib/`, `src/components/`, `src/pages/` の新規・変更 | `feat` |
@@ -32,7 +34,6 @@ git diff --stat HEAD
 | E2Eテスト計画 | `src/e2e/` | `test` |
 | 設定・依存 | `package.json`, `tsconfig.json` | `chore` |
 | ドキュメント | `*.md`, `CLAUDE.md` | `docs` |
-| デモハーネス | `demo/`, `claude-progress.txt` | `chore` |
 
 ### 3. 推奨コミット順序（依存関係の順）
 
@@ -40,7 +41,6 @@ git diff --stat HEAD
 2. `feat`: 機能実装
 3. `test`: ユニットテスト → E2Eテスト
 4. `docs`: ドキュメント更新
-5. `chore`: デモ設定更新
 
 ### 4. コミットメッセージ形式
 
@@ -69,6 +69,10 @@ git log --oneline -10  # 確認
 git status             # 未コミットがないこと
 ```
 
-`demo/feature_list.json` の `"id": "commit"` フェーズの `status` を `"done"` に更新する。
-`claude-progress.txt` に「コミット完了: [n]件, push成功」を追記する。
-コミット一覧を返す。
+コミットしたコミットハッシュとメッセージの一覧を呼び出し元に返す。
+
+### デモパイプライン連携（任意動作）
+
+`demo/feature_list.json` が **存在する場合のみ**、`"id": "commit"` フェーズの `status` を `"done"` に更新する。
+`claude-progress.txt` が **存在する場合のみ**、「コミット完了: [n]件, push成功」を追記する。
+これらのファイルはデモパイプライン特有のものであり、無くてもエラーにせずスキップする。

@@ -14,6 +14,14 @@ Issue の acceptance criteria（Given/When/Then）を **Playwright MCP サーバ
 
 **最重要: テスト計画は「テストが通ること」だけが目的ではない。PRレビュワー（人間）が、スクリーンショットを見て実装された機能を確認できることが目的。**
 
+## 呼び出し元から受け取るパラメータ
+
+呼び出し元（supervisor やコマンド）はプロンプトで以下を渡す:
+
+- `screenshots_dir`: スクリーンショットの保存先ディレクトリ（例: `demo/screenshots`、デフォルトは `screenshots`）
+- `test_plan_path`: テスト計画 Markdown の出力先（例: `src/e2e/test-plan.md`、デフォルトは `e2e/test-plan.md`）
+- `app_url`: 開発サーバーの URL（例: `http://localhost:5173`、デフォルトは Vite のデフォルト）
+
 ## 禁止事項
 
 - **`.spec.ts` ファイルを作成しない**（Playwright テストライブラリは使用禁止）
@@ -22,7 +30,7 @@ Issue の acceptance criteria（Given/When/Then）を **Playwright MCP サーバ
 
 ## 出力形式
 
-`src/e2e/test-plan.md` にテスト計画を作成する。e2e-runner がこの計画を読んで MCP ツールで実行する。
+呼び出し元から渡された `test_plan_path` にテスト計画を作成する。e2e-runner がこの計画を読んで MCP ツールで実行する。
 
 ---
 
@@ -43,16 +51,16 @@ grep -r "aria-label\|role=\|data-testid\|getByRole\|getByText" src/ --include="*
 実装されたコンポーネントの JSX を読んで、MCP ツールで操作できる要素を特定する。
 `browser_snapshot` で取得されるアクセシビリティツリーの `ref` 属性を基準にする。
 
-### 3. `src/e2e/test-plan.md` を作成する
+### 3. テスト計画ファイルを作成する
 
-以下の形式で記述する:
+`test_plan_path` に以下の形式で記述する（`{screenshots_dir}` と `{app_url}` は呼び出し元から渡された値で置換する）:
 
 ```markdown
 # E2E テスト計画: [機能名]
 
 ## 前提条件
-- 開発サーバー: http://localhost:5173
-- スクリーンショット保存先: demo/screenshots/
+- 開発サーバー: {app_url}
+- スクリーンショット保存先: {screenshots_dir}/
 
 ## テストケース
 
@@ -63,29 +71,33 @@ grep -r "aria-label\|role=\|data-testid\|getByRole\|getByText" src/ --include="*
 **Then:** [期待結果]
 
 **MCP 実行ステップ:**
-1. `browser_navigate` → http://localhost:5173
+1. `browser_navigate` → {app_url}
 2. `browser_snapshot` → アクセシビリティツリーで要素の ref を確認
 3. `browser_click` → ref="[要素のref]", element="[説明]"
 4. `browser_wait_for` → text="[期待テキスト]"
-5. `browser_take_screenshot` → filename="demo/screenshots/01_[説明].png"
+5. `browser_take_screenshot` → filename="{screenshots_dir}/01_[説明].png"
 
 **検証:** [何を確認するか]
 
 ### TC-02: データあり状態の表示
 
 **モックデータ投入:**
+アプリの DB モジュール（IndexedDB ラッパー等）を `browser_evaluate` で動的 import し、対象テーブルに必須フィールドを満たすモックレコードを挿入する。
+具体的なテーブル名・必須フィールドは事前に Read で型定義（`src/types/`、`src/lib/db.ts` 相当）を確認すること。
+
 ```javascript
-// browser_evaluate で実行するコード
-const { db } = await import('/src/lib/db.ts');
-await db.tasks.bulkAdd([
-  { id: '1', title: 'タスクA', usedAi: true, duration: 30, /* ... */ },
-  { id: '2', title: 'タスクB', usedAi: false, duration: 60, /* ... */ },
-]);
+// browser_evaluate で実行するコードの一般形
+(async () => {
+  const dbModule = await import('/src/lib/db.ts');  // ← 実際のパスは Read で確認
+  await dbModule.db.<対象テーブル>.bulkAdd([
+    /* 対象機能を確認するために必要な多様なレコード */
+  ]);
+})()
 ```
 
 **MCP 実行ステップ:**
 1. `browser_evaluate` → モックデータ投入コード
-2. `browser_navigate` → http://localhost:5173 (リロード)
+2. `browser_navigate` → {app_url} (リロード)
 3. ...
 ```
 
@@ -113,9 +125,9 @@ await db.tasks.bulkAdd([
 #### 必須ルール
 
 1. **`filename` パラメータは必ず指定する**
-   - 形式: `demo/screenshots/[連番]_[説明].png`
-   - 例: `demo/screenshots/01_home_with_button.png`
-   - filename 未指定だと PostToolUse hook で VS Code プレビューに表示できない
+   - 形式: `{screenshots_dir}/[連番]_[説明].png`
+   - 例: `{screenshots_dir}/01_home_with_button.png`
+   - filename 未指定だと PostToolUse hook（リポジトリ全体の `.claude/settings.json` で設定済み）で VS Code プレビューに表示できない
 
 2. **モーダル・ポップアップは開いている状態で撮る**
    - `browser_click` → `browser_wait_for`（アニメーション完了）→ `browser_take_screenshot`
@@ -125,10 +137,10 @@ await db.tasks.bulkAdd([
 
 4. **ファイル名は連番+説明で、PRで見たとき何の証拠かわかるようにする**
    ```
-   demo/screenshots/01_home_with_button.png      ← ホーム画面にボタンがある
-   demo/screenshots/02_feature_with_data.png     ← データが入った状態の機能画面
-   demo/screenshots/03_category_chart.png        ← カテゴリ別グラフが表示されている
-   demo/screenshots/04_empty_state.png           ← データなし時のメッセージ
+   {screenshots_dir}/01_home_with_button.png      ← ホーム画面にボタンがある
+   {screenshots_dir}/02_feature_with_data.png     ← データが入った状態の機能画面
+   {screenshots_dir}/03_category_chart.png        ← カテゴリ別グラフが表示されている
+   {screenshots_dir}/04_empty_state.png           ← データなし時のメッセージ
    ```
 
 5. **fullPage は使わない**（ビューポート内のスクリーンショットのほうがPRで見やすい）
@@ -147,5 +159,10 @@ await db.tasks.bulkAdd([
 
 ## 完了時の処理
 
-`demo/feature_list.json` の `"id": "e2e-plan"` フェーズの `status` を `"done"` に更新する。
-`claude-progress.txt` に「E2E計画完了: [テストケース数]件, スクリーンショット[n]枚予定」を追記する。
+作成したテスト計画のパス、テストケース数、撮影予定スクリーンショット数を呼び出し元に返す。
+
+### デモパイプライン連携（任意動作）
+
+`demo/feature_list.json` が **存在する場合のみ**、`"id": "e2e-plan"` フェーズの `status` を `"done"` に更新する。
+`claude-progress.txt` が **存在する場合のみ**、「E2E計画完了: [テストケース数]件, スクリーンショット[n]枚予定」を追記する。
+これらのファイルはデモパイプライン特有のものであり、無くてもエラーにせずスキップする。
