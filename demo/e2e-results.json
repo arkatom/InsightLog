@@ -1,0 +1,32 @@
+[
+  {
+    "tc": "TC-01",
+    "name": "データなし状態でモーダルを開く",
+    "pass": true,
+    "details": "タイトル表示: true, 空メッセージ表示: true"
+  },
+  {
+    "tc": "TC-02",
+    "name": "サンプルデータ投入",
+    "pass": true,
+    "details": "サンプルデータボタンクリック: true"
+  },
+  {
+    "tc": "TC-03",
+    "name": "データあり状態でROIダッシュボードを開く",
+    "pass": true,
+    "details": "タイトル=true, AI活用率=true, 時間削減=true, カテゴリ=true, ROIスコア=true"
+  },
+  {
+    "tc": "TC-04",
+    "name": "カテゴリ別AI活用率グラフの確認",
+    "pass": true,
+    "details": "グラフタイトル: true, Recharts SVG数: 1"
+  },
+  {
+    "tc": "TC-05",
+    "name": "モーダルを閉じる確認",
+    "pass": true,
+    "details": "閉じる前=true, モーダルが閉じた: true"
+  }
+]

@@ -1,0 +1,24 @@
+# Ship-from-Issue Pipeline Progress
+## Issue: #8 - AI ROI ダッシュボード機能の追加
+## Branch: feat/issue-8-ai-roi-dashboard
+
+### フェーズ記録
+- [x] issue: 2026-04-06 取得完了
+- [x] plan: 2026-04-06 計画策定完了（Devil 2回指摘、解消済み）
+- [x] implement: 2026-04-06 実装完了: src/types/roi.ts, src/lib/roiCalc.ts, src/hooks/useROIMetrics.ts, src/components/statistics/ROISummaryCards.tsx, src/components/statistics/ROICategoryChart.tsx, src/components/statistics/ROIDashboardModal.tsx, src/components/layout/Header.tsx, src/pages/HomePage.tsx
+- [x] unit-test: UT完了: roiCalc.test.ts, 19件パス
+- [x] e2e-plan: 2026-04-06 E2E計画完了: 8テストケース, スクリーンショット9枚予定
+- [x] e2e-run: 2026-04-06 E2E完了: スクリーンショット5枚撮影・検証済み (ALL PASS)
+- [ ] commit: コミット
+- [ ] pr: PR作成
+- [ ] review: PRレビュー
+
+### E2Eテスト結果（2026-04-06）
+全テスト結果: ALL PASS (5/5)
+
+スクリーンショット検証:
+  01_roi_modal_empty.png — モーダルタイトル「AI活用ROIダッシュボード」と空メッセージ「まだデータがありません。タスクを記録して始めましょう」が表示されている
+  02_sample_data_loaded.png — 「サンプルデータを読み込みました（約90件）」トースト通知と統計・分析モーダルが表示されている
+  03_roi_dashboard_summary_cards.png — 4つのKPIカード（AI活用率70%、推定時間削減235分、最も効果的なカテゴリ「設計」、AI ROIスコア65 Good）とカテゴリ別棒グラフが表示されている
+  04_roi_category_chart.png — カテゴリ別AI活用率棒グラフが明確に描画されている（設計・レビュー100%、実装・ドキュメント約65%）
+  05_home_after_modal_close.png — モーダルが閉じてホーム画面に戻り、完了セッション5件・集中時間2時間5分・完了タスク7件が表示されている

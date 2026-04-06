@@ -36,7 +36,7 @@
 - `src/types/` — 型定義
 - `src/constants/` — 定数（timer, categories, aiTools）
 - `src/e2e/` — E2Eテスト計画（Playwright MCP 実行用）
-- `demo/` — デモ実行ハーネス（run.sh, issue.md, feature_list.json）
+- `demo/` — デモ実行ハーネス（run.sh, issue.md, feature_list.json, plan_output.md, e2e-runner.mjs）
 - `.claude/agents/` — Ship-from-Issue 汎用 Sub-agent 定義
 - `.claude/commands/` — スラッシュコマンド（/ship-from-issue, /cleanup, /show-log）
 - `.claude/skills/` — スキル定義（team, planner-team, reviewer-team, reflection, heartbeat, kaizen）
