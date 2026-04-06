@@ -6,23 +6,6 @@
 
 - [SOUL憲法](.claude/instructions/core/soul.md)
 
-## プロダクトの目的
-
-AI利用タスクの記録を通じて、AI使用 vs 非使用の生産性を定量比較するツール。
-
-## 主要ユーザー
-
-企業でAIを導入している開発者。特にExpert AX研修の受講者。
-
-## KPI
-- AI利用率
-- 工数削減率
-- プロンプト品質の改善
-
-## 設計思想
-
-記録の摩擦を最小化することが最優先。1タスク30秒以内で記録できること。
-
 ## テックスタック
 
 - React 19 + TypeScript（Vite 7）
@@ -62,9 +45,32 @@ AI利用タスクの記録を通じて、AI使用 vs 非使用の生産性を定
 
 ## コード規約
 
-- パスエイリアス: `@/` → `src/`
-- Prettier: シングルクォート、セミコロンあり、100文字幅
-- 厳密TypeScript（strict: true）
+### 必須ルール
+- **関数コンポーネントのみ使用**。class コンポーネントは禁止
+- **`any` 型禁止**。型が不明な場合は `unknown` を使ってから絞り込む
+- **パスエイリアス `@/` → `src/`** を使う。相対パス `../../../` は避ける
+- **厳密TypeScript（strict: true）** を遵守
+- **Prettier**: シングルクォート、セミコロンあり、100文字幅
+- **import 順序**: 外部ライブラリ → `@/` 配下 → 相対パスの順
+
+### 状態管理
+- **グローバル状態は Zustand のみ**。React Context の直接利用は禁止
+- ストアは `src/store/{feature}Store.ts` に配置
+- ローカル状態は `useState` / `useReducer` でOK
+
+### コンポーネント配置
+- **再利用可能な基本UI**: `src/components/ui/`（Button, Card, Input, Modal, Badge 等）
+- **機能固有UI**: `src/components/{feature}/`（task, timer, statistics 等）
+- 新規コンポーネントは必ず関数コンポーネントで、Props は `interface` で定義
+
+### テスト
+- **ユニットテスト**: Vitest + React Testing Library。`src/tests/unit/` 配下に配置
+- **E2Eテスト**: Playwright MCP サーバー経由で実行。`npx playwright test` の直接実行は禁止
+- 新機能追加時は対応するユニットテストを必ず書く
+
+### データベース操作
+- IndexedDB へのアクセスは必ず `src/lib/db.ts` の Dexie インスタンス経由
+- 直接 `indexedDB.open()` を呼ぶのは禁止
 
 ## データベース
 
