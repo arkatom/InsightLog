@@ -16,11 +16,15 @@ import { formatMinutes } from '@/lib/time';
 // モーダルを遅延ロード
 const StatsModal = lazy(() => import('@/components/statistics/StatsModal').then(m => ({ default: m.StatsModal })));
 const SettingsModal = lazy(() => import('@/components/settings/SettingsModal').then(m => ({ default: m.SettingsModal })));
+const ROIDashboardModal = lazy(() =>
+  import('@/components/statistics/ROIDashboardModal').then(m => ({ default: m.ROIDashboardModal }))
+);
 
 export function HomePage() {
   const [showTaskList, setShowTaskList] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showROI, setShowROI] = useState(false);
   const { currentCycle, mode } = useTimer();
   const stats = useStatistics('today');
   const { settings } = useSettings();
@@ -32,7 +36,7 @@ export function HomePage() {
         onTaskListClick={() => setShowTaskList(true)}
         onStatsClick={() => setShowStats(true)}
         onSettingsClick={() => setShowSettings(true)}
-
+        onROIClick={() => setShowROI(true)}
       />
 
       {showTimer && (
@@ -84,6 +88,10 @@ export function HomePage() {
         {showSettings && <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} />}
       </Suspense>
 
+      {/* AI ROI ダッシュボードモーダル（遅延ロード） */}
+      <Suspense fallback={null}>
+        {showROI && <ROIDashboardModal isOpen={showROI} onClose={() => setShowROI(false)} />}
+      </Suspense>
 
     </Container>
   );
