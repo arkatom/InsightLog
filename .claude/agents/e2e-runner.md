@@ -1,7 +1,7 @@
 ---
 name: e2e-runner
 description: "Playwright MCP サーバー専用 E2E テスト実行エージェント。MCP ツールでブラウザを操作し、テスト計画に沿って実装を確認・スクリーンショット撮影する。"
-tools: Bash, Read, Write, mcp__playwright
+tools: Bash, Read, Write, mcp__playwright__*
 model: sonnet
 ---
 
