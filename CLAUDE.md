@@ -6,6 +6,23 @@
 
 - [SOUL憲法](.claude/instructions/core/soul.md)
 
+## プロダクトの目的
+
+AI利用タスクの記録を通じて、AI使用 vs 非使用の生産性を定量比較するツール。
+
+## 主要ユーザー
+
+企業でAIを導入している開発者。特にExpert AX研修の受講者。
+
+## KPI
+- AI利用率
+- 工数削減率
+- プロンプト品質の改善
+
+## 設計思想
+
+記録の摩擦を最小化することが最優先。1タスク30秒以内で記録できること。
+
 ## テックスタック
 
 - React 19 + TypeScript（Vite 7）
@@ -56,3 +73,24 @@ Dexie.js（IndexedDB ラッパー）で3テーブル管理:
 - `tasks` — タスク記録（AI利用フラグ、カテゴリ、所要時間等）
 - `sessions` — ポモドーロセッション
 - `settings` — アプリ設定
+
+## デプロイ
+
+Cloudflare Pages への自動デプロイに対応しています。`main` ブランチへの push で GitHub Actions が実行されます。
+
+### 手動デプロイ
+
+```bash
+npm install -g wrangler
+npm run build
+wrangler pages deploy dist --project-name=insightlog
+```
+
+### GitHub Actions を使う場合
+
+リポジトリの Secrets に以下を設定してください。
+
+| Secret | 説明 |
+|---|---|
+| `CLOUDFLARE_API_TOKEN` | Cloudflare API トークン |
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare Account ID |
