@@ -43,22 +43,29 @@ Issue のタイトルと受け入れ条件を把握する。
 git checkout -b <ブランチ名>
 ```
 
-`claude-progress.txt` に開始記録を書く。
+**`claude-progress.txt` をブランチ作成直後に必ず作成する**（空ファイルでもよいので即時作成）。
+これは `demo/run.sh` の `tail -f` バックグラウンドジョブが `until [[ -f ... ]]` でファイル出現を待っているため、作成が遅れると進捗ストリーミングが起動しないことを防ぐためである。
+
+```bash
+echo "[$(date '+%H:%M:%S')] パイプライン開始: <ブランチ名>" > claude-progress.txt
+```
 
 ### 3. フェーズ実行
 
-以下のフェーズを依存関係順に実行する。
+以下のフェーズを依存関係順に実行する。各 Agent / Skill 起動時には、デモ固有のパスをプロンプトで明示的に渡すこと（Agent 自体はデモ固有パスを知らない汎用ワーカーであるため）。
 
-| フェーズ | 実行方法 | 補足 |
+| フェーズ | 実行方法 | プロンプトで渡すパラメータ |
 |---|---|---|
-| **plan** | `Skill("planner-team")` | Skill が Agent Teams を自律起動。完了後に実装計画が生成される |
-| **implement** | Agent: `implementer` | プロンプトに計画の全内容を含める |
-| **unit-test** | Agent: `test-writer` | e2e-plan と**並行起動** |
-| **e2e-plan** | Agent: `e2e-planner` | unit-test と**並行起動** |
-| **e2e-run** | Agent: `e2e-runner` | Playwright MCP サーバーでブラウザ操作・スクリーンショット撮影 |
-| **commit** | Agent: `committer` | |
-| **pr** | Agent: `pr-creator` | 完了後 PR URL を受け取る |
-| **review** | `Skill("reviewer-team")` | 実行前に PR 番号を明示。Skill が Agent Teams を自律起動 |
+| **plan** | `Skill("planner-team")` | 計画書の保存先 = `demo/plan_output.md` |
+| **implement** | Agent: `implementer` | 計画ファイルパス = `demo/plan_output.md`、計画の全内容、Issue 概要 |
+| **unit-test** | Agent: `test-writer` | テスト対象ファイル一覧（implementer の出力）。e2e-plan と**並行起動** |
+| **e2e-plan** | Agent: `e2e-planner` | `screenshots_dir = demo/screenshots`、`test_plan_path = src/e2e/test-plan.md`、`app_url = http://localhost:5173`。unit-test と**並行起動** |
+| **e2e-run** | Agent: `e2e-runner` | `test_plan_path = src/e2e/test-plan.md`、`screenshots_dir = demo/screenshots`、`app_url = http://localhost:5173` |
+| **commit** | Agent: `committer` | 変更ファイル一覧（参考） |
+| **pr** | Agent: `pr-creator` | `screenshots_dir = demo/screenshots`、`videos_dir = demo/screenshots/test-results` |
+| **review** | `Skill("reviewer-team")` | PR 番号、Issue の受け入れ条件 |
+
+各 Agent / Skill は完了時に `demo/feature_list.json` の自フェーズの status を `done` に更新する（ファイルが存在する場合のみの optional 動作。デモ実行時は `run.sh` が生成するので存在する）。
 
 ### 4. フェーズ完了時
 
@@ -79,7 +86,7 @@ GitHub Issue 番号がある場合、PR 本文に `Closes #<番号>` を含め�
 2. ブラウザ操作は `mcp__playwright__browser_*` ツールのみ使用する
 3. `browser_take_screenshot` 呼び出し時は **必ず `filename` パラメータを指定する**
    - 形式: `demo/screenshots/[連番]_[説明].png`（例: `demo/screenshots/01_home.png`）
-   - `filename` 未指定のスクリーンショットは PostToolUse hook で VS Code プレビューに表示できない
+   - `filename` 未指定のスクリーンショットは `.claude/settings.json` の PostToolUse hook で VS Code プレビューに表示できない
 4. e2e-planner は `.spec.ts` ではなく **MCP 実行用テスト計画**（`src/e2e/test-plan.md`）を作成する
 5. e2e-runner はテスト計画を読み、MCP ツールで各ステップを手動実行する
 
