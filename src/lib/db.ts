@@ -49,6 +49,24 @@ export class InsightLogDatabase extends Dexie {
       settings: 'id, memberId',
       reports: null
     });
+
+    // バージョン5: aiUsed フィールドを廃止（aiToolsUsed を単一ソースに統一）
+    // - tasks スキーマから aiUsed インデックスを除外
+    // - 既存レコードから aiUsed プロパティを物理削除
+    this.version(5).stores({
+      tasks: 'id, name, createdAt, completedAt, *category, *aiToolsUsed',
+      sessions: 'id, startedAt, completedAt, type',
+      settings: 'id, memberId',
+    }).upgrade(async (trans) => {
+      const tasks = await trans.table('tasks').toArray();
+      for (const task of tasks) {
+        if ('aiUsed' in task) {
+          const { aiUsed: _aiUsed, ...rest } = task;
+          void _aiUsed;
+          await trans.table('tasks').put(rest);
+        }
+      }
+    });
   }
 }
 

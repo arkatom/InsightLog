@@ -155,7 +155,6 @@ export function TaskForm() {
       await addTask({
         name: name.trim(),
         taskUrl: taskUrl.trim() || undefined,
-        aiUsed: !isAINotUsed, // 後方互換性のため
         aiToolsUsed: selectedAITools,
         duration: Number(duration),
         timeMinutesNoAi: timeMinutesNoAi ? Number(timeMinutesNoAi) : undefined,

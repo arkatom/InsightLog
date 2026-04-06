@@ -2,6 +2,7 @@ import { Sparkles, ExternalLink, Trash2, TrendingDown } from 'lucide-react';
 import type { Task } from '@/types/task';
 import { Badge } from '@/components/ui/Badge';
 import { formatMinutes } from '@/lib/time';
+import { isAiUsed } from '@/lib/task-helpers';
 
 interface TaskItemProps {
   task: Task;
@@ -9,7 +10,7 @@ interface TaskItemProps {
 }
 
 function calcReductionPercent(task: Task): number | null {
-  if (!task.aiUsed || !task.timeMinutesNoAi || task.timeMinutesNoAi <= 0) return null;
+  if (!isAiUsed(task) || !task.timeMinutesNoAi || task.timeMinutesNoAi <= 0) return null;
   return Math.round((1 - task.duration / task.timeMinutesNoAi) * 100);
 }
 
@@ -64,17 +65,12 @@ export function TaskItem({ task, onDelete }: TaskItemProps) {
             {cat}
           </Badge>
         ))}
-        {task.aiUsed && task.aiToolsUsed.length > 0 ? (
+        {isAiUsed(task) &&
           task.aiToolsUsed.map((tool) => (
             <Badge key={tool} variant="accent" className="flex items-center gap-1">
               <Sparkles size={10} /> {tool}
             </Badge>
-          ))
-        ) : task.aiUsed ? (
-          <Badge variant="accent" className="flex items-center gap-1">
-            <Sparkles size={10} /> AI
-          </Badge>
-        ) : null}
+          ))}
         {task.reworkCount > 0 && (
           <Badge variant="warning">手戻り {task.reworkCount}回</Badge>
         )}

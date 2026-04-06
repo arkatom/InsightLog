@@ -5,6 +5,7 @@ import type { PomodoroSession } from '@/types/session';
 import type { AppSettings } from '@/types/settings';
 import type { Statistics } from '@/types/statistics';
 import { AI_NOT_USED } from '@/constants/aiTools';
+import { isAiUsed } from './task-helpers';
 
 export interface ExportData {
   version: string;
@@ -57,7 +58,7 @@ export async function exportDataAsCSV(): Promise<string> {
     task.name,
     task.taskUrl || '',
     task.category.join(', '),
-    task.aiUsed ? 'はい' : 'いいえ',
+    isAiUsed(task) ? 'はい' : 'いいえ',
     task.duration.toString(),
     task.reworkCount.toString(),
     task.notes,
@@ -320,9 +321,8 @@ export async function exportDataAsKPICSV(): Promise<string> {
   ];
 
   const rows = tasks.map((task) => {
-    // ai_usedの判定（aiToolsUsedが空配列またはAI未使用のみの場合はfalse）
-    const aiUsed =
-      task.aiToolsUsed.length > 0 && !task.aiToolsUsed.includes(AI_NOT_USED);
+    // ai_usedの判定は isAiUsed ヘルパーを使用（aiToolsUsed を単一ソースとして参照）
+    const aiUsed = isAiUsed(task);
 
     // AI_NOT_USEDを除外してカンマ区切り文字列にする
     const aiToolsStr = aiUsed
