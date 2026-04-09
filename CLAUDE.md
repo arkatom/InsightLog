@@ -59,6 +59,10 @@
 - ストアは `src/store/{feature}Store.ts` に配置
 - ローカル状態は `useState` / `useReducer` でOK
 
+### import 順序
+- 外部ライブラリ → `@/` 配下 → 相対パスの順
+- パスエイリアス `@/` → `src/` を使う（相対パス `../../../` は避ける）
+
 ### データベース操作
 - IndexedDB へのアクセスは必ず `src/lib/db.ts` の Dexie インスタンス経由
 - 直接 `indexedDB.open()` を呼ぶのは禁止
