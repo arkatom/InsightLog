@@ -4,10 +4,24 @@
     "dockerfile": "Dockerfile"
   },
   "features": {
-    "ghcr.io/devcontainers/features/github-cli:1": {}
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/desktop-lite:1": {
+      "password": "vscode",
+      "webPort": "6080"
+    }
   },
-  "forwardPorts": [5173],
+  "forwardPorts": [5173, 6080],
+  "portsAttributes": {
+    "5173": {
+      "label": "InsightLog Dev Server"
+    },
+    "6080": {
+      "label": "Desktop (noVNC)",
+      "onAutoForward": "notify"
+    }
+  },
   "remoteEnv": {
+    "DISPLAY": ":1",
     "PLAYWRIGHT_BROWSERS_PATH": "${containerWorkspaceFolder}/.playwright-browsers",
     "GH_CONFIG_DIR": "${containerWorkspaceFolder}/.gh-config",
     "NPM_CONFIG_CACHE": "${containerWorkspaceFolder}/.npm-cache"
