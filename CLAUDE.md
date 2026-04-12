@@ -6,6 +6,10 @@
 
 - [SOUL憲法](.claude/instructions/core/soul.md)
 
+## Identity
+
+- [Identity Map](.claude/instructions/core/identity.md) -- 自己定義と改善対象の全体地図
+
 ## テックスタック
 
 - React 19 + TypeScript（Vite 7）

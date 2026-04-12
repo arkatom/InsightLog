@@ -1,6 +1,6 @@
-# Heartbeat チェックリスト
+# Observe チェックリスト
 
-ops/coach が Heartbeat 実行時に確認する観点。
+coach が /observe 実行時に確認する観点。
 
 ## 検出対象
 
@@ -29,5 +29,5 @@ ops/coach が Heartbeat 実行時に確認する観点。
 ## 判定基準
 
 - 該当する問題が **1つでも** あれば → improvements.md に記録
-- 該当なし → `HEARTBEAT_OK`
+- 該当なし → `OBSERVE_OK`
 - 複数該当する場合 → **最もインパクトが大きい1件のみ** を選択
