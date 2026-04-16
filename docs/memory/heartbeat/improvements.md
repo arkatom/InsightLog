@@ -51,3 +51,25 @@
 - Expected impact: 提案の方向性ミスによる手戻り（切り口変更レベル）がゼロになる
 - Risk & rollback: ヒアリングステップにより応答が1ターン遅れる。不要と判断されれば省略するだけ
 - Status: proposed
+
+## 2026-04-16 -- CLAUDE.md に新規コンポーネントの配置ルールを追記
+- Symptom: SDD 再実装で新規作成された RequiredBadge コンポーネントが src/RequiredBadge.tsx（ルート直下）に配置された。既存コンポーネントは全て src/components/ui/ にあるが、CLAUDE.md に新規ファイルの配置先が明記されていなかったため AI が推測で配置した
+- Root cause: config — CLAUDE.md のディレクトリ構成セクションに「新規コンポーネントの配置先」ルールが不足
+- Fix: CLAUDE.md のコンポーネント設計セクションに「新規の再利用可能コンポーネントは src/components/ui/ に配置する。機能固有のコンポーネントは src/components/{feature}/ に配置する」を追記
+- Preventive check: git diff で新規ファイルが src/ 直下に作られていないか確認する
+- Expected impact: AI が新規コンポーネントを正しいディレクトリに配置するようになり、手動移動の手間がゼロになる
+- Risk & rollback: CLAUDE.md への1行追記のみ。リスクなし
+- Risk-level: high
+- Rubric impact: 後片付け
+- Status: proposed
+
+## 2026-04-16 -- 実装後に npm run dev を自動実行するフックを追加
+- Symptom: SDD 再実装後に Playwright MCP でスクショを撮ったが、dev サーバーを再起動し忘れていたため古い画面が撮影された。2回撮り直しが発生
+- Root cause: procedure — 実装後に dev サーバーを再起動する手順が明文化されていない
+- Fix: settings.json の PostToolUse フックに、Edit/Write 後に自動で npm run dev を再起動するフックを追加する
+- Preventive check: Playwright スクショの前に dev サーバーのプロセスが起動しているか確認するコマンドを実行
+- Expected impact: スクショ撮り直しがゼロになる
+- Risk & rollback: フック追加のため、編集のたびに dev サーバーが再起動される。負荷が高い場合はフックを削除する
+- Risk-level: high
+- Rubric impact: 動作検証
+- Status: proposed

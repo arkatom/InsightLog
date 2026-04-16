@@ -48,11 +48,13 @@ description: >
 📚 研修の実習・ハンズオン手順
 
 【ハンズオン】
-  compare       CLAUDE.md の有無で比較
+  compare              CLAUDE.md の有無で比較
 
 【実習】
-  coloring      InsightLog の配色を変える
-  simplify      タスク記録フォームを簡単にする
+  coloring             InsightLog の配色を変える
+  simplify             タスク記録フォームを簡単にする
+  required-annotation  必須フィールドの注釈表示
+  observe-evolve       振り返りと改善サイクルを体験
 
 使い方: /training <スラッグ or 日本語キーワード>
 ```
@@ -95,11 +97,15 @@ VS Code が既に開いていれば、新しいタブで該当ファイルが表
 
 ```
 # 完全一致
-/training compare         → docs/training/claudemd-compare.md を開く
-/training 配色           → docs/training/coloring.md を開く
+/training compare              → docs/training/claudemd-compare.md を開く
+/training 配色                → docs/training/coloring.md を開く
+/training required-annotation  → docs/training/required-annotation.md を開く
+/training observe-evolve       → docs/training/observe-evolve.md を開く
 
 # 部分一致（唯一マッチ）
 /training task           → docs/training/task-form-simplify.md を開く
+/training 必須           → docs/training/required-annotation.md を開く
+/training 改善           → docs/training/observe-evolve.md を開く
 
 # 部分一致（複数）
 /training claude         → 候補を提示: claudemd-compare.md
