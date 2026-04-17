@@ -50,6 +50,8 @@
 - Preventive check: 提案を含むアシスタント出力の前に、上記3点に対応するユーザーへの質問または会話内での確認が1回以上あるか振り返る
 - Expected impact: 提案の方向性ミスによる手戻り（切り口変更レベル）がゼロになる
 - Risk & rollback: ヒアリングステップにより応答が1ターン遅れる。不要と判断されれば省略するだけ
+- Risk-level: low
+- Rubric impact: 指示理解度 + 手戻り率
 - Status: proposed
 
 ## 2026-04-16 -- CLAUDE.md に新規コンポーネントの配置ルールを追記
