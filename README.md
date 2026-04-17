@@ -29,12 +29,10 @@ React 19 + TypeScript / Vite 7 / Tailwind CSS 4 / Zustand / Dexie.js / Recharts 
 
 ## テンプレートの更新を取り込む
 
-このリポジトリはテンプレートから作成されています。研修中にテンプレート側が更新された場合、以下のコマンドで取り込めます。
+このリポジトリはテンプレートから作成されています。研修中にテンプレート側が更新された場合、以下のコマンド一発で取り込めます（初回・2回目以降どちらでも同じコマンドで動きます）。
 
 ```bash
-git remote add template https://github.com/arkatom/InsightLog.git
-git fetch template
-git merge template/main --allow-unrelated-histories
+(git remote add template https://github.com/arkatom/InsightLog.git 2>/dev/null || git remote set-url template https://github.com/arkatom/InsightLog.git) && git fetch template && git merge template/main --allow-unrelated-histories
 ```
 
 コンフリクトが発生した場合は、テンプレート側を正として取り込んでください。
@@ -44,8 +42,6 @@ git checkout --theirs .
 git add .
 git commit -m "テンプレートの更新を取り込み"
 ```
-
-2回目以降は `git fetch template && git merge template/main` だけで取り込めます。
 
 ## ライセンス
 
