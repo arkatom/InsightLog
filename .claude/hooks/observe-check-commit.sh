@@ -15,8 +15,8 @@
 #    - PostToolUse: tool 実行 "後" に発火。tool は既に終わっている
 #    - 今回は「commit が完了したあとに次のアクション (/observe) を促す」セマンティクス
 #      なので PostToolUse が公式に正しい
-#    - 公式: docs/official_docs/cc/hooks.md L1196
-#      "Runs immediately after a tool completes successfully"
+#    - 公式: https://docs.claude.com/en/docs/claude-code/hooks
+#      （PostToolUse 節: "Runs immediately after a tool completes successfully"）
 #
 # 2. なぜ JSON で additionalContext を返すのか（echo "..." ではダメ）？
 #    - PreToolUse / PostToolUse では plain text の stdout は Claude のコンテキスト
@@ -24,8 +24,8 @@
 #    - plain text stdout が context に入るのは UserPromptSubmit / SessionStart の
 #      hook だけ
 #    - PostToolUse で Claude にメッセージを伝えたいなら hookSpecificOutput.additionalContext
-#    - 公式: hooks.md L1234
-#      "additionalContext | Additional context for Claude to consider"
+#    - 公式: https://docs.claude.com/en/docs/claude-code/hooks
+#      （Hook Output → JSON Output → hookSpecificOutput.additionalContext 節）
 #
 # 3. なぜ専用ファイル .claude/tmp/last-observe-time でタイムスタンプ管理するのか？
 #    - "docs/memory/ 内のファイル mtime を見る" 方式は、手動編集や別ツールの更新
@@ -39,7 +39,8 @@
 #      (commit はもう完了しているので元には戻せないが Claude には伝わる)
 #    - 今回は "ブロックしない" "エラーではない" "単に context を追加するだけ"
 #      なので exit 0 で問題なし
-#    - 公式: hooks.md L505-509 (exit code の扱い)
+#    - 公式: https://docs.claude.com/en/docs/claude-code/hooks
+#      （Hook Output → Exit Code 節）
 #
 # ============================================================================
 #
@@ -80,8 +81,8 @@ fi
 # プロジェクトルートを特定する
 # 公式仕様: $CLAUDE_PROJECT_DIR は Claude Code が自動でセットする環境変数で、
 # プロジェクトルートを指す。フォールバックは $(pwd)（Claude Code を起動した cwd）。
-# 公式: docs/official_docs/cc/hooks.md L366
-#   "$CLAUDE_PROJECT_DIR: the project root. Wrap in quotes to handle paths with spaces."
+# 公式: https://docs.claude.com/en/docs/claude-code/hooks
+#   （Working Directory and Environment Variables 節 → $CLAUDE_PROJECT_DIR）
 PROJECT_ROOT="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 
 # /observe 実行時刻を保存している専用ファイル
@@ -106,7 +107,7 @@ emit_context() {
 
 # タイムスタンプファイルが無い → /observe をまだ 1 度も実行していない
 if [ ! -f "$TIMESTAMP_FILE" ]; then
-  emit_context "💡 /observe の実行記録がありません。続けて /observe を実行することを推奨します。"
+  emit_context "💡 /observe の実行記録がありません。続けて /observe を実行してください。observe は内部で /evolve も連続実行します（low risk は自動適用、high risk は人間判断キューに残ります）。"
   exit 0
 fi
 
@@ -118,7 +119,7 @@ ELAPSED=$((NOW - LAST))
 # 1 時間以上経過していたら Claude のコンテキストにメッセージを注入
 if [ "$ELAPSED" -ge "$THRESHOLD" ]; then
   MIN=$((ELAPSED / 60))
-  emit_context "💡 前回の /observe 実行から約 ${MIN} 分経過しています。続けて /observe を実行することを推奨します。"
+  emit_context "💡 前回の /observe 実行から約 ${MIN} 分経過しています。続けて /observe を実行してください。observe は内部で /evolve も連続実行します（low risk は自動適用、high risk は人間判断キューに残ります）。"
 fi
 
 # commit はブロックしない

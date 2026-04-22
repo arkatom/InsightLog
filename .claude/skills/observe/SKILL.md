@@ -104,13 +104,29 @@ Rubric スコアが特定の基準で目標（8.0/10）を下回っている場�
   OBSERVE_OK (rubric: N/10, 注意: 未レビューの提案が{N}件。/evolve で処理してください)
   ```
 
-### 9. 実行時刻の記録（commit-hook 連携用）
+### 9. /evolve の自動実行（必須）
 
-ステップ 1〜8 が完了したら、必ず最後に以下を実行して `/observe` の最終実行時刻を記録する:
+observe のステップ 1〜8 が完了したら、**続けて `/evolve` を必ず実行する**。
+
+- /evolve の hard rule により安全性は担保される:
+  - 1 回の実行で最大 1 件だけ自動適用
+  - 低リスク（`Risk-level: low` かつ追記のみ、`docs/memory/heartbeat/*.md` 等）のみ自動適用
+  - 高リスク（SKILL.md / Hard rules / コード / settings.json / 既存行の変更 等）は **人間承認キューに残る**
+- observe が出した新しい proposed を、同じサイクル内で即座にリスク判定し、安全に自動適用できる範囲だけ適用する
+- 高リスクが残った場合、Claude は人間に「重要判断が必要な改善があります、承認/却下してください」とリマインドする
+
+observe の出力に続けて 2 行目に evolve の結果を追加する:
+```
+EVOLVE: {出力パターン}
+```
+
+### 10. 実行時刻の記録（commit-hook 連携用）
+
+ステップ 1〜9 が完了したら、必ず最後に以下を実行して `/observe` の最終実行時刻を記録する:
 
 ```bash
 mkdir -p "${CLAUDE_PROJECT_DIR:-$(pwd)}/.claude/tmp"
 date -u +%s > "${CLAUDE_PROJECT_DIR:-$(pwd)}/.claude/tmp/last-observe-time"
 ```
 
-このタイムスタンプは `.claude/hooks/observe-check-commit.sh`（PostToolUse hook）が読み、前回 `/observe` から 1 時間以上経過していたら次の `git commit` 完了後に Claude へ「`/observe` 実行を推奨」のメッセージを差し込む仕組みで使われる。記録を忘れると hook が「実行記録なし」と判断して毎回プロンプトが出るので、ステップ 9 まで必ず実行する。
+このタイムスタンプは `.claude/hooks/observe-check-commit.sh`（PostToolUse hook）が読み、前回 `/observe` から 1 時間以上経過していたら次の `git commit` 完了後に Claude へ「`/observe` → `/evolve` 連続実行を推奨」のメッセージを差し込む仕組みで使われる。記録を忘れると hook が「実行記録なし」と判断して毎回プロンプトが出るので、ステップ 10 まで必ず実行する。
