@@ -33,7 +33,7 @@ React 19 + TypeScript / Vite 7 / Tailwind CSS 4 / Zustand / Dexie.js / Recharts 
 
 ```bash
 (git remote add template https://github.com/arkatom/InsightLog.git 2>/dev/null || git remote set-url template https://github.com/arkatom/InsightLog.git) && git fetch template && git merge template/main --allow-unrelated-histories
-```ーミ
+```
 
 コンフリクトが発生した場合は、テンプレート側を正として取り込んでください。
 
@@ -52,4 +52,13 @@ MIT License
 最初のうちは画面共有して進めていってもらうのが良さそう。
 
 F11 で全画面にしてもらうと見やすいです。とか
+「発火」は「起動」とかに
+Hook6 の流れ、SubAgent・Agent Teamsから Hook をやるまでの流れが長い。すぐ触るわけではないってことを伝えるといい。
+どこがアプリケーション層なのか、Claude Code 関連の設定はどれかという説明をする。
+
+全体像
+
+最初に挨拶をチャットに送ってもらう。温める。
+
+質疑応答スライドにやった内容をまとめる。
 
