@@ -103,3 +103,14 @@ Rubric スコアが特定の基準で目標（8.0/10）を下回っている場�
   ```
   OBSERVE_OK (rubric: N/10, 注意: 未レビューの提案が{N}件。/evolve で処理してください)
   ```
+
+### 9. 実行時刻の記録（commit-hook 連携用）
+
+ステップ 1〜8 が完了したら、必ず最後に以下を実行して `/observe` の最終実行時刻を記録する:
+
+```bash
+mkdir -p "${CLAUDE_PROJECT_DIR:-$(pwd)}/.claude/tmp"
+date -u +%s > "${CLAUDE_PROJECT_DIR:-$(pwd)}/.claude/tmp/last-observe-time"
+```
+
+このタイムスタンプは `.claude/hooks/observe-check-commit.sh`（PostToolUse hook）が読み、前回 `/observe` から 1 時間以上経過していたら次の `git commit` 完了後に Claude へ「`/observe` 実行を推奨」のメッセージを差し込む仕組みで使われる。記録を忘れると hook が「実行記録なし」と判断して毎回プロンプトが出るので、ステップ 9 まで必ず実行する。
