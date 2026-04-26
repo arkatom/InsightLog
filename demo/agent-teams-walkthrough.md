@@ -9,24 +9,28 @@
 
 ## 全体像
 
-`/ship-from-issue` は Claude Code の slash command で、GitHub Issue を起点に **計画 → 実装 → テスト → コミット → PR → レビュー** までを 7 フェーズで自律実行する。各フェーズは独立した Sub-Agent またはskill が担当。
+`/ship-from-issue` は Claude Code の slash command で、GitHub Issue を起点に **計画 → 実装 → ユニットテスト/E2E計画 (並列) → E2E実行 → コミット → PR → レビュー** までを **8 フェーズ** で自律実行する。各フェーズは独立した Sub-Agent または Skill が担当。
+
+実 DAG (`apps/InsightLog/demo/pipeline.json`):
 
 ```
-[plan]      planner-team       Issue を読んで実装計画を策定
+[plan]      planner-team        Issue を読んで実装計画を策定
    ↓
-[implement] implementer        計画書を読んで実装
+[implement] implementer         計画書を読んで実装
    ↓
-[unit-test] test-writer  ─┐ 並行実行
-[e2e-plan]  e2e-planner  ─┘
-   ↓
-[e2e-run]   e2e-runner         Playwright でブラウザ操作・録画
+   ├─→ [unit-test] test-writer  ユニットテスト作成
+   └─→ [e2e-plan]  e2e-planner  E2E テスト計画 (Markdown) 作成
+        ↓ (両方の完了待ち)
+[e2e-run]   e2e-runner          Playwright MCP でブラウザ操作・スクリーンショット撮影
    ↓
 [commit]    committer           規約に従ってコミット
    ↓
 [pr]        pr-creator          スクリーンショット付きで PR 作成
    ↓
-[review]    reviewer-team       quality / ux / test の 3 観点 + Devil
+[review]    reviewer-team       PM + quality + ux + test + Devil の 5 ロール
 ```
+
+`unit-test` と `e2e-plan` は両方とも `implement` 完了後に **並列分岐**。`e2e-run` は **両方の完了を待つ** (pipeline.json の `depends_on: ["unit-test", "e2e-plan"]`)。
 
 実装ファイル:
 - 起動: `apps/InsightLog/demo/run.sh`
@@ -72,133 +76,157 @@ cd /path/to/InsightLog
 
 ---
 
-## ステップ 3: planner-team が計画策定
+## ステップ 3: planner-team が計画策定 (フェーズ 1: plan)
 
-`apps/InsightLog/.claude/skills/planner-team/SKILL.md` で定義された 4 ロール (PM / Searcher / Architect / Devil) が Plan 草案を策定。
+`apps/InsightLog/.claude/skills/planner-team/SKILL.md` で定義された **PM / Searcher / Architect / Devil** の 4 ロールが Plan 草案を策定。
 
 ```
 [plan] planner-team — spawn  実装計画を策定
    ├─ [👑 PM]      要件分解 + ロール調整
    ├─ [🔍 Searcher] 公式ドキュメント・既存コード調査
-   ├─ [🏗 Architect] 設計案立案 (3 案 + 比較)
-   └─ [😈 Devil]    各案の弱点を critical / warning で批判
-   → 最終 plan を docs/plan/ に保存
+   ├─ [🏗 Architect] 設計案立案
+   └─ [😈 Devil]    Devil's Advocate ループで弱点を critical / warning で批判
+   → 最終 plan を `plan_output.md` または呼び出し元から渡されたパスに保存
 ```
 
 `[スクリーンショット 3: planner-team の出力例 (4 ロールの議事録)]`
 
-**講師ノート**: Devil's Advocate サイクルが入ることで「3 票同意 = 安全」を破壊する。並列同系統 LLM の認知バイアス対策。実装は `apps/InsightLog/.claude/skills/planner-team/roles/devil.md` を参照。
+**講師ノート**: Devil's Advocate サイクルが入ることで「3 票同意 = 安全」を破壊する。同系統 LLM の認知バイアス対策。実装は `apps/InsightLog/.claude/skills/planner-team/roles/devil.md` を参照。保存先は呼び出し元 (run.sh / supervisor) が指定するため、`docs/plan/` 固定ではない。
 
 ---
 
-## ステップ 4: implementer + test-writer が並列で実装
+## ステップ 4: implementer が実装 (フェーズ 2: implement)
 
-`implementer` が src/ を編集、`test-writer` が並行してテストを書く。
+`implementer` (tools: `Read, Write, Edit, Bash, Glob, Grep`) が src/ を編集。
 
 ```
-[implement] implementer — spawn  ROI機能を実装
+[implement] implementer — spawn  機能を実装
    🔧 Edit  src/components/task/TaskForm.tsx
    🔧 Write src/lib/validators.ts
-   ✓ Build succeeded
+   🔧 Bash  npm run build
+   ✓ Build succeeded (tsc --noEmit / vite build)
+```
 
+`[スクリーンショット 4: implementer の進捗ログ (tail -f claude-progress.txt)]`
+
+実 Sub-Agent 定義:
+- `apps/InsightLog/.claude/agents/implementer.md` (tools: `Read, Write, Edit, Bash, Glob, Grep`)
+
+**講師ノート**: implementer は **TypeScript 型エラー 0 件 + ビルド成功を必達条件**。ビルドエラーが出ると自己修正してビルドが通るまでループする (description フロントマターの記述)。
+
+---
+
+## ステップ 5: test-writer + e2e-planner が並列分岐 (フェーズ 3-4)
+
+`implement` 完了後、**`unit-test` と `e2e-plan` が並列で分岐**する (pipeline.json の DAG)。
+
+```
 [unit-test] test-writer — spawn  ユニットテスト作成
+   tools: Read, Write, Edit, Bash, Glob, Grep
    🔧 Write src/tests/unit/TaskForm.test.tsx
    ✓ Vitest: 5 / 5 passed
+
+[e2e-plan]  e2e-planner — spawn  E2E テスト計画 (Markdown) を作成
+   tools: Read, Write, Edit, Glob, Grep
+   🚫 .spec.ts は作成しない (e2e-planner.md で明示禁止)
+   📝 Write src/e2e/test-plan.md (test_plan_path で渡された場所)
 ```
 
-`[スクリーンショット 4: 並列実装の進捗ログ (tail -f claude-progress.txt)]`
+`[スクリーンショット 5: 並列分岐 (test-writer の Vitest 結果 + e2e-planner の test-plan.md)]`
 
 実 Sub-Agent 定義:
-- `apps/InsightLog/.claude/agents/implementer.md` (tools: Bash / Read / Write / Edit)
-- `apps/InsightLog/.claude/agents/test-writer.md` (tools: Bash / Read / Write / Edit)
+- `apps/InsightLog/.claude/agents/test-writer.md` (tools: `Read, Write, Edit, Bash, Glob, Grep`)
+- `apps/InsightLog/.claude/agents/e2e-planner.md` (tools: `Read, Write, Edit, Glob, Grep`、`.spec.ts` 作成禁止)
 
-**講師ノート**: 各 Sub-Agent の `tools` は親 PM が制限している。implementer は npm run build を打てるが Slack には投稿できない、というように「子の能力範囲を親が決める」設計。
+**講師ノート**: e2e-planner は **`.spec.ts` ファイルを作成しない / `npx playwright test` を使わない / `@playwright/test` の API を直接使うコードを書かない** が明示禁止 (e2e-planner.md L27-29)。代わりに Markdown テスト計画 (`test_plan_path`) を出力し、e2e-runner が MCP で実行する設計。
 
 ---
 
-## ステップ 5: e2e-planner + e2e-runner が E2E テスト
+## ステップ 6: e2e-runner が MCP で実行 (フェーズ 5: e2e-run)
 
-Playwright MCP 経由で E2E テスト計画 → 実行。録画も自動。
+`unit-test` と `e2e-plan` の **両方の完了を待ってから** 起動 (pipeline.json: `depends_on: ["unit-test", "e2e-plan"]`)。
 
 ```
-[e2e-plan]  e2e-planner — spawn  E2E テスト設計
-   📝 Write src/e2e/task-form-required-validation.spec.ts
-
-[e2e-run]   e2e-runner — spawn  Playwright で実行
-   🌐 Playwright MCP browser_navigate http://localhost:5173
-   🌐 Playwright MCP browser_take_screenshot
-   🎥 録画: demo/screenshots/test-results/task-form-required.webm
-   ✓ 3 / 3 passed (8.2s)
+[e2e-run]   e2e-runner — spawn  Playwright MCP でテスト計画を実行
+   tools: Bash, Read, Write, mcp__playwright__*
+   🌐 mcp__playwright__browser_navigate http://localhost:5173
+   🌐 mcp__playwright__browser_snapshot
+   🌐 mcp__playwright__browser_click ref=...
+   🌐 mcp__playwright__browser_take_screenshot filename="demo/screenshots/01_form.png"
+   📸 撮影 4 枚 → Read で画像検証 (全枚 ✅ pass)
 ```
 
-`[スクリーンショット 5: Playwright テスト結果 (録画ファイル一覧)]`
+`[スクリーンショット 6: Playwright MCP テスト結果 (撮影スクリーンショット一覧 + Read 検証)]`
 
 実 Sub-Agent 定義:
-- `apps/InsightLog/.claude/agents/e2e-planner.md` (tools: Read / Write)
-- `apps/InsightLog/.claude/agents/e2e-runner.md` (tools: Bash / mcp__playwright__*)
+- `apps/InsightLog/.claude/agents/e2e-runner.md` (tools: `Bash, Read, Write, mcp__playwright__*`)
 
-**講師ノート**: e2e-runner は `npx playwright test` の **直接実行が禁止** されている (CLAUDE.md L73)。代わりに Playwright MCP サーバー経由で実行する設計。これは「壊れたテストランナーを使わせない」という防御策。
+**講師ノート**: e2e-runner も `npx playwright test` の **直接実行が禁止** (e2e-runner.md L26)。代わりに `mcp__playwright__browser_*` ツールでブラウザ操作 → スクリーンショット撮影 → Read で画像検証する設計。これは「壊れたテストランナーを使わせない」+「PR レビュワーが画像で実装を確認できる」の 2 つの目的を満たす。
 
 ---
 
-## ステップ 6: committer + pr-creator が PR 作成
+## ステップ 7: committer が commit (フェーズ 6: commit)
 
 ```
 [commit] committer — spawn  規約に従ってコミット
+   tools: Bash, Read
    🔧 git add src/components/task/TaskForm.tsx ...
    🔧 git commit -m "feat(task): ..."
    ✓ commit abc1234
-
-[pr]     pr-creator — spawn  PR を作成
-   🔧 git push -u origin feature/task-validation
-   🔧 gh pr create --title "..." --body "..."
-   ✓ PR #42 created: https://github.com/arkatom/InsightLog/pull/42
 ```
 
-`[スクリーンショット 6: 作成された PR (タイトル + 説明 + diff)]`
+`[スクリーンショット 7: 作成されたコミット (git log --oneline)]`
 
 実 Sub-Agent 定義:
-- `apps/InsightLog/.claude/agents/committer.md` (tools: Bash / Read)
-- `apps/InsightLog/.claude/agents/pr-creator.md` (tools: Bash / Read)
+- `apps/InsightLog/.claude/agents/committer.md` (tools: `Bash, Read`)
 
 **講師ノート**: committer の tools には `Edit` / `Write` が **含まれていない**。これは「ファイル編集はもう終わった、コミットだけしろ」というスコープ制限。各 Sub-Agent の tools 制限が「責務分離」の実装になっている。
 
 ---
 
-## ステップ 7: reviewer-team が多視点レビュー
-
-`apps/InsightLog/.claude/skills/reviewer-team/SKILL.md` で定義された 5 ロール (PM / quality / ux / test / Devil) が並列でレビュー。
+## ステップ 8: pr-creator が PR 作成 + reviewer-team がレビュー (フェーズ 7-8)
 
 ```
-[review] reviewer-team — spawn  多角的レビュー
+[pr]     pr-creator — spawn  日本語の PR を作成
+   tools: Bash, Read, Write
+   🔧 git push -u origin feature/task-validation
+   🔧 gh pr create --title "..." --body "..."
+   ✓ PR #42 created (日本語見出し: 概要 / 変更内容 / 実装確認)
+
+[review] reviewer-team — spawn  多角的レビュー (5 ロール)
+   ├─ [👑 PM]            PR 情報収集 + 統合 + GitHub 投稿
    ├─ [🔍 quality-reviewer] 型・ロジック・エッジケース
    ├─ [🎨 ux-reviewer]      デザイン・アクセシビリティ
    ├─ [📋 test-reviewer]    テスト網羅性・AC カバレッジ行列
    └─ [😈 Devil]            横断批判 + 「遠慮」の摘発
-   → [👑 PM] 統合 → gh pr review --request-changes
+   → gh pr review --request-changes (or --approve)
 ```
 
-`[スクリーンショット 7: レビューコメント例 (4 ロールの統合)]`
+`[スクリーンショット 8: PR と reviewer-team のレビュー結果統合]`
 
 詳細な出力例は `apps/InsightLog/demo/review-output-example.md` を参照。
 
-**講師ノート**: reviewer-team は SKILL（明示呼び出し）として実装されており、Sub-Agent ではない。SubAgent vs Skill の使い分けは「単発の汎用作業 = SubAgent」「複数ロール協働ワークフロー = Skill」と覚えると分かりやすい。
+実 Sub-Agent / Skill 定義:
+- `apps/InsightLog/.claude/agents/pr-creator.md` (tools: `Bash, Read, Write`)
+- `apps/InsightLog/.claude/skills/reviewer-team/SKILL.md` (PM + quality + ux + test + Devil の 5 ロール)
+
+**講師ノート**: pr-creator は **日本語の PR** を前提にしている (description: 「日本語の PR を作成する」)。テンプレート見出しも日本語 (概要 / 変更内容 / 実装確認)。reviewer-team は SKILL（明示呼び出し）として実装されており、Sub-Agent ではない。SubAgent vs Skill の使い分けは「単発の汎用作業 = SubAgent」「複数ロール協働ワークフロー = Skill」と覚えると分かりやすい。
 
 ---
 
-## 補足: 各 Sub-Agent の責務
+## 補足: 各 Sub-Agent の責務 (実 frontmatter 準拠)
 
-| Agent / Skill | 責務 | tools 制限 | 実ファイル |
-|----------------|------|------------|------------|
-| committer (Sub-Agent) | コミット作成 | Bash / Read | `apps/InsightLog/.claude/agents/committer.md` |
-| implementer (Sub-Agent) | コード編集 | Bash / Read / Write / Edit | `apps/InsightLog/.claude/agents/implementer.md` |
-| test-writer (Sub-Agent) | ユニットテスト作成 | Bash / Read / Write / Edit | `apps/InsightLog/.claude/agents/test-writer.md` |
-| e2e-planner (Sub-Agent) | E2E 計画 | Read / Write | `apps/InsightLog/.claude/agents/e2e-planner.md` |
-| e2e-runner (Sub-Agent) | E2E 実行 | Bash / mcp__playwright__* | `apps/InsightLog/.claude/agents/e2e-runner.md` |
-| pr-creator (Sub-Agent) | PR 作成 | Bash / Read | `apps/InsightLog/.claude/agents/pr-creator.md` |
-| cc-feature-review (Sub-Agent) | Claude Code 機能調査 | Read / Glob / Grep / WebSearch / WebFetch | `apps/InsightLog/.claude/agents/cc-feature-review.md` |
-| planner-team (Skill) | 計画策定 (4 ロール) | (Skill 内で各 Agent 起動) | `apps/InsightLog/.claude/skills/planner-team/SKILL.md` |
-| reviewer-team (Skill) | レビュー (5 ロール) | (Skill 内で各 Agent 起動) | `apps/InsightLog/.claude/skills/reviewer-team/SKILL.md` |
+| Agent / Skill | 責務 | tools 制限 (実 frontmatter) | 実ファイル |
+|----------------|------|------------------------------|------------|
+| committer (Sub-Agent) | コミット作成 | `Bash, Read` | `apps/InsightLog/.claude/agents/committer.md` |
+| implementer (Sub-Agent) | コード編集 | `Read, Write, Edit, Bash, Glob, Grep` | `apps/InsightLog/.claude/agents/implementer.md` |
+| test-writer (Sub-Agent) | ユニットテスト作成 | `Read, Write, Edit, Bash, Glob, Grep` | `apps/InsightLog/.claude/agents/test-writer.md` |
+| e2e-planner (Sub-Agent) | E2E 計画 (Markdown 出力) | `Read, Write, Edit, Glob, Grep` | `apps/InsightLog/.claude/agents/e2e-planner.md` |
+| e2e-runner (Sub-Agent) | E2E 実行 (MCP) | `Bash, Read, Write, mcp__playwright__*` | `apps/InsightLog/.claude/agents/e2e-runner.md` |
+| pr-creator (Sub-Agent) | 日本語 PR 作成 | `Bash, Read, Write` | `apps/InsightLog/.claude/agents/pr-creator.md` |
+| cc-feature-review (Sub-Agent) | Claude Code 機能調査 | `Read, Glob, Grep, WebSearch, WebFetch` | `apps/InsightLog/.claude/agents/cc-feature-review.md` |
+| planner-team (Skill) | 計画策定 (4 ロール: PM/Searcher/Architect/Devil) | (Skill 内で各 Agent を起動) | `apps/InsightLog/.claude/skills/planner-team/SKILL.md` |
+| reviewer-team (Skill) | レビュー (5 ロール: PM/quality/ux/test/Devil) | (Skill 内で各 Agent を起動) | `apps/InsightLog/.claude/skills/reviewer-team/SKILL.md` |
 
 ---
 
@@ -216,9 +244,9 @@ cat apps/InsightLog/demo/logs/raw_<timestamp>.jsonl | python3 apps/InsightLog/de
 
 ## 講師ノート（Part 6 slide 26d で活用する想定）
 
-- このファイルを VS Code で開き、**ステップ 1-7 を順に読み上げながら** 該当する Sub-Agent / Skill 定義ファイルを並列で開く
-- 7 枚のスクリーンショット placeholder は将来撮影して埋め込む（現状はテキストのみで成立する設計）
-- 動画再生に失敗した場合の代替として 5 分でダイジェスト読み上げ可能
+- このファイルを VS Code で開き、**ステップ 1-8 を順に読み上げながら** 該当する Sub-Agent / Skill 定義ファイルを並列で開く
+- 8 枚のスクリーンショット placeholder は将来撮影して埋め込む（現状はテキストのみで成立する設計）
+- 動画再生に失敗した場合の代替として 5-7 分でダイジェスト読み上げ可能
 - 「7 体の Sub-Agent + 2 つの Skill」の構造を `ls apps/InsightLog/.claude/agents/ apps/InsightLog/.claude/skills/` で見せると、抽象的な「Agent Teams」が具体的な実装に繋がる
 
 ## 関連
