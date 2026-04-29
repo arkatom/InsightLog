@@ -67,16 +67,18 @@ jq . ~/.claude/settings.json
 
 | 例 | 意味 |
 |----|------|
-| `"matcher": "Bash"` | Bash ツールのすべてのコマンド |
-| `"matcher": "Bash(git commit:*)"` | `git commit` で始まるコマンドのみ |
+| `"matcher": "Bash"` | Bash ツール全般を対象 (tool_name へのフィルタ) |
+| `"matcher": "Bash"` + `"if": "Bash(git commit *)"` | Bash ツールのうち `git commit` 系コマンドのみ (`if` フィールドは permission rule 構文で絞り込み) |
 | `"matcher": "mcp__playwright__browser_take_screenshot"` | Playwright スクリーンショットツールに完全一致 |
-| `"matcher": "Edit\|Write"` | Edit ツール または Write ツール (`\|` は OR) |
+| `"matcher": "Edit\|Write"` | Edit ツール または Write ツール (Markdown table のため表記上 `\|` だが JSON では `|` 単体で OR) |
+
+**重要**: `matcher` は `tool_name` に対するフィルタ。`"Bash(git commit:*)"` のような permission rule 構文を `matcher` に直接書いても tool_name に一致せず Hook は発火しない。コマンド単位で絞り込むには `matcher: "Bash"` + 別フィールド `if: "Bash(git commit *)"` の組み合わせが正しい。
 
 ### よくあるタイポ
 
 - ❌ `"Bsh"` (`a` 抜け)
 - ❌ `"bash"` (大文字小文字違い)
-- ❌ `"Bash(git commit:*)"` のエスケープ忘れで JSON エラー
+- ❌ `"matcher": "Bash(git commit:*)"` (permission rule 構文を matcher に直接書いている。matcher は tool_name へのフィルタなので Bash にも一致しない → Hook が永遠に発火しない)
 - ❌ `"matcher": Bash` (引用符なし)
 
 ### 検証
@@ -172,28 +174,38 @@ claude
 
 ---
 
-## 実例: observe-check-commit.sh の登録
+## 実例: observe-check-commit.sh の登録 (リファレンス、実装は実習⑥ で行う)
 
-`apps/InsightLog/.claude/settings.json` の hooks エントリ (実例):
+`apps/InsightLog/.claude/hooks/observe-check-commit.sh` 冒頭コメント L47-65 に記載されている公式準拠の登録例:
 
 ```jsonc
 {
-  "hooks": [
-    {
-      "matcher": "Bash(git commit:*)",
-      "hooks": [
-        {
-          "type": "command",
-          "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/observe-check-commit.sh"
-        }
-      ]
-    }
-  ]
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "if": "Bash(git commit *)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/observe-check-commit.sh"
+          }
+        ]
+      }
+    ]
+  }
 }
 ```
 
+ポイント:
+- `matcher: "Bash"` で tool_name フィルタ (Bash ツール全般を対象)
+- `if: "Bash(git commit *)"` で permission rule 構文を使い `git commit` 系コマンドのみに絞る
+- `command: bash .claude/hooks/observe-check-commit.sh` でスクリプトを実行
+
+**注意**: 上記は **リファレンス例** であり、`apps/InsightLog/.claude/settings.json` には実際には未登録 (実習⑥ で受講者が手動登録する想定)。settings.json には現在 `mcp__playwright__browser_take_screenshot` matcher の `open-screenshot.sh` のみ登録されている。
+
 スクリプト本体: `apps/InsightLog/.claude/hooks/observe-check-commit.sh`
-冒頭 1-48 行のコメントに「なぜ PostToolUse じゃなく PreToolUse か」「なぜ exit 0 固定か」「なぜ JSON additionalContext を返すか」が公式 URL 引用付きで解説されている。
+冒頭 1-67 行のコメントに「なぜ PreToolUse じゃなく PostToolUse か」「なぜ exit 0 固定か」「なぜ JSON additionalContext を返すか」「`matcher` + `if` の使い分け」が公式 URL 引用付きで解説されている。
 
 ---
 

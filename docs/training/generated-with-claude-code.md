@@ -13,7 +13,7 @@ InsightLog の主要コンポーネント・フックについて「どのよう
 > shadcn/ui のフォームパターンで、タスクの **タスク名 / URL / AI ツール (複数選択) / 作業時間 / AI 未利用時推定 / 手戻り回数 / カテゴリ (複数選択) / カスタムカテゴリ / 振り返りメモ** の 9 項目を入力できる Form を作って。AI ツールとカテゴリは `@/constants/aiTools.ts` と `@/constants/categories.ts` の定数から取得。Dexie への保存は `useTasks().addTask` 経由。「AI未使用」を選択したら他の AI ツールは全解除する排他選択ロジックも入れる。
 
 **成果物**:
-- 行数: 320 行（チェックボックスグループ + 入力フォーム + 排他ロジック + バリデーション）
+- 行数: 371 行（チェックボックスグループ + 入力フォーム + 排他ロジック + バリデーション）
 - 主要フック: `useState` × 10 / `useEffect` × 1 / `useTasks` / `useSessions` / `useSettings`
 - 排他ロジックは `handleAIToolToggle` で実装
 
@@ -26,12 +26,12 @@ InsightLog の主要コンポーネント・フックについて「どのよう
 
 **指示の要旨**:
 
-> Recharts の `BarChart` で、カテゴリ別の総作業時間 (分) を表示。色は Tailwind の `blue-500` から `amber-500` のグラデーション。X 軸はカテゴリ名、Y 軸は時間 (分)。データ取得は `useStatistics()` カスタムフック経由で。
+> Recharts の `PieChart` で、カテゴリ別の総作業時間 (分) を円グラフ表示。Tooltip でカテゴリ名と実分数を表示。Legend を併記。
 
 **成果物**:
-- 行数: 約 95 行
-- 依存: `recharts` の `BarChart` / `Bar` / `XAxis` / `YAxis` / `Tooltip`
-- グラデーションは `linearGradient` の SVG タグで実装
+- 行数: 60 行
+- 依存: `recharts` の `PieChart` / `Pie` / `Cell` / `ResponsiveContainer` / `Legend` / `Tooltip`
+- カテゴリごとに `COLORS` 配列 (8 色: blue / green / amber / red / violet / pink / teal / orange) からローテーション
 
 **所要時間**: 約 5 分（Plan モードなし、1 ターン）
 **手戻り回数**: 0 回
@@ -42,16 +42,16 @@ InsightLog の主要コンポーネント・フックについて「どのよう
 
 **指示の要旨**:
 
-> ポモドーロタイマーのカスタムフック。25 分作業 / 5 分休憩 / 4 サイクルで 15 分長休憩。Zustand store と連動。バックグラウンド動作対応 (タブを閉じても継続)。Web Worker で精度を保つ + visibility API で復帰時補正。
+> ポモドーロタイマーのカスタムフック。25 分作業 / 5 分休憩 / 4 サイクルで 15 分長休憩。Zustand store と連動。タブを閉じてもタイマー値が永続化されるよう、`src/lib/storage` の helper (`saveTimerState` / `loadTimerState` / `clearTimerState`) 経由で localStorage に保存。
 
 **成果物**:
-- 行数: 約 180 行
-- Web Worker 連携: `worker.postMessage` で時刻同期
-- visibility API: `document.visibilityState` 監視で復帰時に経過時間を補正
-- Zustand 連動: `timerStore.setTime()` で状態同期
+- 行数: 279 行
+- 主要フック: `useEffect` × 4 + `useRef` + `useCallback`
+- 時刻計測: `setInterval` ベース (Web Worker 不使用)
+- 永続化: `useTimerStore` (Zustand) と `src/lib/storage` 経由で **localStorage** に保存、再読み込み時に直近の状態を復元 (タスクデータは Dexie 経由 IndexedDB だが、タイマー UI 状態はこの軽量永続化で十分という設計判断)
 
 **所要時間**: 約 18 分（Plan モード + 実装 + Edit 数回）
-**手戻り回数**: 2 回（最初は setInterval だけで実装 → ブラウザ非アクティブ時の精度低下を Devil's Advocate で指摘 → Web Worker 案に修正）
+**手戻り回数**: 2 回（最初は localStorage を直接呼び出して実装 → `src/lib/storage` の専用 helper に集約 → 復元タイミングを useEffect で再構成）
 
 ---
 
@@ -62,7 +62,7 @@ InsightLog の主要コンポーネント・フックについて「どのよう
 > commit 直前に振り返りを促す Skill を作りたい。Hard rules: 1 回の observe で改善は最大 1 件、設定変更しない、提案のみ。実行手順: 早期終了 → 情報収集 → 振り返り記録 → Rubric → 摩擦検出 → 失敗パターン照合 → 改善提案。出力: `OBSERVE: logged 1 improvement` または `OBSERVE_OK`。
 
 **成果物**:
-- 行数: 約 130 行（SKILL.md 本体）+ 4 サブファイル (`references/`)
+- 行数: 約 130 行（SKILL.md 本体）+ 3 サブファイル (`references/checklist.md` / `references/improvement-template.md` / `references/reflection-template.md`)
 - 構造: フロントマター / Hard rules / 9 ステップ / 出力フォーマット
 - Progressive Disclosure: 詳細チェックリスト・テンプレートは `references/` に分離
 
@@ -75,15 +75,15 @@ InsightLog の主要コンポーネント・フックについて「どのよう
 
 **指示の要旨**:
 
-> commit 時に「前回の /observe から 1 時間以上経過していたら振り返りを促す」PreToolUse hook を作りたい。タイムスタンプは `.claude/tmp/last-observe-time` に保存。matcher は Bash ツールの commit コマンド。出力は JSON `{"hookSpecificOutput": {"hookEventName": "PreToolUse", "additionalContext": "..."}}` で AI に追加コンテキストを渡す。exit 0 固定で AI の処理を妨げない。
+> git commit 完了時に「前回の /observe から 1 時間以上経過していたら振り返りを促す」PostToolUse hook を作りたい。タイムスタンプは `.claude/tmp/last-observe-time` に保存。matcher は Bash ツール、`if` フィールドで `git commit` 系コマンドのみに絞る。出力は JSON `{"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": "..."}}` で AI に追加コンテキストを渡す。exit 0 固定で AI の処理を妨げない。
 
 **成果物**:
-- 行数: 127 行（うち 1-48 行は冒頭コメント。なぜ PostToolUse じゃなく PreToolUse なのか / なぜ exit 0 固定か / なぜ JSON additionalContext を返すかの解説）
+- 行数: 126 行（うち 1-67 行は冒頭コメント。なぜ PreToolUse じゃなく PostToolUse なのか / なぜ exit 0 固定か / なぜ JSON additionalContext を返すかの解説）
 - 公式 URL 引用: 公式 hooks.md の該当行を 3 箇所参照
 - 実用性: 1 週間の運用で 14 件の /observe 起動を促した
 
 **所要時間**: 約 22 分（実機検証 + コメント追加で時間が伸びた）
-**手戻り回数**: 3 回（最初は exit 1 で「コミット中断」させようとしたが、公式仕様で exit 0 が推奨と判明 → 修正）
+**手戻り回数**: 3 回（最初は PreToolUse で書いたが、commit 完了後にコンテキスト注入する設計が公式仕様 (PostToolUse の additionalContext) と判明 → 修正）
 
 ---
 
@@ -96,7 +96,7 @@ InsightLog の主要コンポーネント・フックについて「どのよう
 **成果物**:
 - ファイル数: 5 (SKILL.md + roles/pm.md / searcher.md / architect.md / devil.md)
 - SKILL.md 行数: 67 行
-- 各 role 定義: 平均 80 行（責務 + 出力フォーマット + サンプル）
+- 各 role 定義: 平均 70 行 (architect 76 / devil 83 / pm 56 / searcher 65) — 責務 + 出力フォーマット + サンプル
 
 **所要時間**: 約 50 分（4 ロール定義 + 統合 + Devil's Advocate サイクル設計）
 **手戻り回数**: 2 回（最初は PM が他ロールの仕事も兼務する設計 → 責務分離で再設計）
@@ -119,15 +119,15 @@ InsightLog の主要コンポーネント・フックについて「どのよう
 
 ---
 
-## 8. CategoryChart のテスト (`src/tests/unit/CategoryChart.test.tsx`)
+## 8. ユニットテスト (`src/tests/unit/`)
 
 **指示の要旨**:
 
-> 上記 CategoryChart.tsx に対してユニットテストを書いて。境界値: 0 件 / 1 件 / 全カテゴリ網羅 / カスタムカテゴリ含む。Recharts のレンダリングは jest-dom + screen.getByText で確認。
+> Vitest + React Testing Library で `lib/time.ts` の時刻フォーマット関数と `lib/task-helpers.ts` のタスク集計関数のユニットテストを書いて。境界値: 0 件 / 1 件 / 全カテゴリ網羅。
 
 **成果物**:
-- 行数: 約 110 行 (テストケース 6 件)
-- カバレッジ: CategoryChart.tsx の 92%
+- ファイル: `src/tests/unit/time.test.ts` / `src/tests/unit/task-helpers.test.ts`
+- フォーカス: pure function 中心の lib 層をテスト (Recharts コンポーネントはレンダリング差分が大きいので E2E に寄せる方針)
 
 **所要時間**: 約 8 分
 **手戻り回数**: 0 回

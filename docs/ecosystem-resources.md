@@ -33,7 +33,7 @@ Part 4「Claude Code を育てる PDCA」の終盤、slide 31「エコシステ�
 
 | リソース | URL | 用途 |
 |---------|-----|------|
-| Claude Code Discord (公式) | https://discord.gg/anthropic | 公式 Discord、Anthropic 社員も参加 |
+| Anthropic Discord 招待 | (Anthropic 公式サイト経由で最新の招待 URL を確認) | コミュニティ Discord (招待 URL は変動するため公式サイト経由で取得) |
 | r/ClaudeAI (Reddit) | https://www.reddit.com/r/ClaudeAI/ | コミュニティの議論・事例共有 |
 | X (旧 Twitter) `#ClaudeCode` | (検索) | 最新事例・速報の流通経路 |
 
@@ -43,9 +43,8 @@ Part 4「Claude Code を育てる PDCA」の終盤、slide 31「エコシステ�
 
 | 著者 | URL | 注目ポイント |
 |------|-----|--------------|
-| Mitchell Hashimoto | https://mitchellh.com/ | ハーネスエンジニアリング提唱者。Claude Code 設計思想の言語化 |
+| Mitchell Hashimoto | https://mitchellh.com/ | HashiCorp 創業者。個人ブログで Claude Code / agentic coding 関連の実践論考あり |
 | Simon Willison | https://simonwillison.net/ | LLM 全般の観察 + Claude Code 実例レビュー |
-| Iain Harper | (個人ブログ) | Claude Code 実装事例の詳細解説 |
 | Anthropic Engineering YouTube | https://www.youtube.com/@anthropic-ai | 公式技術解説動画 |
 
 ---
