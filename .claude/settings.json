@@ -17,8 +17,16 @@
       "Bash(git checkout:*)",
       "Bash(git merge:*)",
       "Bash(git worktree:*)",
-      "Bash(claude /observe)",
-      "Bash(claude /evolve)"
+      "Skill(observe)",
+      "Skill(evolve)"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(git push --force *)"
+    ],
+    "ask": [
+      "Bash(rm *)",
+      "Bash(git push *)"
     ]
   },
   "hooks": {
