@@ -99,5 +99,5 @@ Before → After で起きた変化:
 ## 関連
 
 - 実習手順: [`apps/InsightLog/docs/training/task-form-simplify.md`](../training/task-form-simplify.md)
-- 既存類似 Issue 例: [`apps/InsightLog/docs/specs/必須フィールドにバリデーション表示を追加.issue.md`](./必須フィールドにバリデーション表示を追加.issue.md)
+- 既存類似 Issue 例: [`apps/InsightLog/docs/plans/必須フィールドにバリデーション表示を追加.issue.md`](./必須フィールドにバリデーション表示を追加.issue.md)
 - 設計判断ガイド: `apps/InsightLog/CLAUDE.md` の「アーキテクチャ判断」セクション

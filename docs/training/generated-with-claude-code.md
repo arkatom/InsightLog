@@ -62,8 +62,8 @@ InsightLog の主要コンポーネント・フックについて「どのよう
 > commit 直前に振り返りを促す Skill を作りたい。Hard rules: 1 回の observe で改善は最大 1 件、設定変更しない、提案のみ。実行手順: 早期終了 → 情報収集 → 振り返り記録 → Rubric → 摩擦検出 → 失敗パターン照合 → 改善提案。出力: `OBSERVE: logged 1 improvement` または `OBSERVE_OK`。
 
 **成果物**:
-- 行数: 約 130 行（SKILL.md 本体）+ 3 サブファイル (`references/checklist.md` / `references/improvement-template.md` / `references/reflection-template.md`)
-- 構造: フロントマター / Hard rules / 9 ステップ / 出力フォーマット
+- 行数: 約 163 行（SKILL.md 本体）+ 4 サブファイル (`references/checklist.md` / `references/improvement-template.md` / `references/reflection-template.md` / `references/scan-patterns.md`)
+- 構造: フロントマター / Hard rules / 10 ステップ / 出力フォーマット
 - Progressive Disclosure: 詳細チェックリスト・テンプレートは `references/` に分離
 
 **所要時間**: 約 35 分（Plan モード + 設計議論 + 実装 + Edit 多数）

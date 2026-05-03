@@ -146,7 +146,7 @@ lastSelectedAITools: string[] と lastSelectedCategories: string[] を追加し�
 - **逆方向の罠**: Level 3 を書こうとして「完璧主義」で 30 分も悩むなら、まず Level 2 で投げて Claude Code の質問に答える方が速い
 - **Phase 1 との関係**: Phase 1 で受講者が書くのは Level 1 → Level 2 の橋渡しで十分（**1 文 OK**）。Level 3 は実装後の答え合わせ・AI 反復の効率化を学ぶための到達例なので、Phase 1 で完璧に書く必要はない
 
-具体例の完成形は [`apps/InsightLog/docs/specs/task-form-simplify.issue.md`](../specs/task-form-simplify.issue.md) を参照してください（Level 3 とほぼ同等の情報量を Markdown Issue 形式で構造化）。
+具体例の完成形は [`apps/InsightLog/docs/plans/task-form-simplify.issue.md`](../plans/task-form-simplify.issue.md) を参照してください（Level 3 とほぼ同等の情報量を Markdown Issue 形式で構造化）。
 
 ## 詰まったら
 
