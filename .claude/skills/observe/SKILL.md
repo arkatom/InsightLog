@@ -23,9 +23,26 @@ description: |
 前回の observe 以降に新しい作業があるか確認する:
 - `docs/memory/reflection/` 内の最新ファイルの更新日時
 - `git log --oneline -5` で直近のコミット
+- **session jsonl の最新 mtime** (下記「session jsonl パスの解決」参照)
 
-前回の observe（improvements.md の最終エントリの日付）以降に新しい振り返りもコミットもなければ:
+前回の observe（improvements.md の最終エントリの日付）以降に新しい振り返りもコミットも session jsonl mtime 更新もなければ:
 → `OBSERVE_OK` を出力して終了
+
+#### session jsonl パスの解決
+
+公式仕様準拠 (Claude Code は session transcript を `~/.claude/projects/{slug}/*.jsonl` に永続化、slug = cwd の非英数字を `-` に置換):
+
+1. **hook 経由で呼ばれた場合** (SessionEnd / Stop hook): stdin JSON `transcript_path` を最優先
+   ```bash
+   INPUT=$(cat); TRANSCRIPT=$(echo "$INPUT" | jq -r .transcript_path)
+   ```
+2. **手動 /observe の場合**: config dir + slug から導出
+   ```bash
+   CONFIG_DIR=${CLAUDE_CONFIG_DIR:-$HOME/.claude}
+   SLUG=$(echo "$PWD" | sed 's|[^a-zA-Z0-9]|-|g')
+   ls -lt "$CONFIG_DIR/projects/$SLUG"/*.jsonl 2>/dev/null | head -10
+   ```
+3. **cloud session (Codespace) の場合**: `CLAUDE_CODE_SKIP_PROMPT_HISTORY=1` が設定されていると jsonl 永続化されない → 警告のみ出して終了
 
 ### 2. 情報収集
 
@@ -34,7 +51,21 @@ description: |
 - `docs/memory/heartbeat/failure-patterns.md` -- 既知の失敗パターン（再発検出）
 - `docs/memory/heartbeat/rubric-log.md` -- 直近のスコア推移
 - `docs/memory/reflection/` 内の最新ファイル（あれば）
-- `git log --oneline -20` -- 直近のコミット履歴
+- `git log --oneline -20` -- 直近のコミット履歴 (**成果物の記録、摩擦は commit 後に除去されているので摩擦検出には使わない**)
+- **`~/.claude/projects/{slug}/*.jsonl` -- session transcript（摩擦検出の一次ソース）**
+
+#### session jsonl 走査手順（必須）
+
+commit log はユーザーが満足した最終成果物しか残らない。実際の怒り・手戻り・修正指示は **session jsonl にしか存在しない**。
+
+1. 上記「session jsonl パスの解決」で対象 jsonl を特定
+2. 前回 observe (improvements.md 最終エントリ日付) 以降に mtime 更新された全ファイル
+3. **Claude が user 発話を全て精読し、文脈判断で摩擦を検出** (怒り / 手戻り / 検証怠り / 過剰修正 / 反復指示)
+4. 補助: 強いシグナルの grep スキャン (例: `やめろ|違う|もう一度|変更が反映されていない|自分で確認|推測`)
+
+**禁止**: commit log と reflection/ だけで rubric を評価する (摩擦を必ず見逃す)。session jsonl を読まずに改善提案を出すことも禁止。
+
+**早期終了条件**: `CLAUDE_CODE_SKIP_PROMPT_HISTORY=1` が設定されている場合、jsonl 永続化されないので observe は機能しない。検出したら警告のみ出力して終了。
 
 ### 3. 振り返り記録
 
