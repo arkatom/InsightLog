@@ -76,31 +76,15 @@
 - **E2Eテスト**: Playwright MCP サーバー経由で実行。`npx playwright test` の直接実行は禁止
 - 新機能追加時は対応するユニットテストを必ず書く
 
-## データベース
+### データベース
+Dexie.js（IndexedDB ラッパー）で 3 テーブル管理:
 
-Dexie.js（IndexedDB ラッパー）で3テーブル管理:
-
-- `tasks` — タスク記録（AI利用フラグ、カテゴリ、所要時間等）
+- `tasks` — タスク記録（AI 利用フラグ、カテゴリ、所要時間等）
 - `sessions` — ポモドーロセッション
 - `settings` — アプリ設定
 
+IndexedDB へのアクセスは必ず `src/lib/db.ts` の Dexie インスタンス経由（直接 `indexedDB.open()` を呼ぶのは禁止、上記「データベース操作」セクション参照）。
+
 ## デプロイ
 
-Cloudflare Pages への自動デプロイに対応しています。`main` ブランチへの push で GitHub Actions が実行されます。
-
-### 手動デプロイ
-
-```bash
-npm install -g wrangler
-npm run build
-wrangler pages deploy dist --project-name=insightlog
-```
-
-### GitHub Actions を使う場合
-
-リポジトリの Secrets に以下を設定してください。
-
-| Secret | 説明 |
-|---|---|
-| `CLOUDFLARE_API_TOKEN` | Cloudflare API トークン |
-| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare Account ID |
+[docs/deployment.md](./docs/deployment.md) を参照。
