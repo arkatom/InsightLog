@@ -7,19 +7,22 @@ observe SKILL.md の `scan_strong_signals` 関数で参照する補助 grep パ�
 - 各 `## カテゴリ名 (日本語)` 直下の **空行 1 行 + パターン本体 1 行** が grep `-E` 用正規表現 (`|` 区切り、空白厳禁)
 - パターン追加: 該当カテゴリの行末に `|新パターン` を付ける (前後空白を入れない、`|` 隣接で空マッチを作らない)
 - パターン削除: `|` を巻き込んで削る (隣接 `||` を残すと空マッチで全行ヒット事故)
-- カテゴリ追加: 本ファイルに `## 新カテゴリ` を足すだけでなく、SKILL.md `scan_strong_signals` の `load_pattern` 呼び出しと `echo` 行も必ず同時編集 (2 ファイル同期、片側だけだと未反映)
+- カテゴリ追加: 本ファイルに `## 新カテゴリ (日本語ラベル)` を足すだけで反映される (`scripts/observe-prep.sh` がカテゴリを自動 auto-derive、SKILL.md / observe-prep.sh の同時編集は不要)
 - 動作環境: bash + awk + jq + grep (macOS / Linux 標準ツール、Python / Node 不要)
-- **fail-closed 警告**: パターン本体が空または空白のみだと SKILL.md `scan_strong_signals` は exit 2 で即停止 (空 `SKILL_ORIGIN` で user 全消去 / 空 `ANGER` で grep 全行マッチ事故を構造的に防止)
+- **fail-closed 警告**: パターン本体が空または空白のみだと `observe-prep.sh` は exit 1 で即停止 (空 `skill_origin_markers` で user 全消去 / 空パターンで grep 全行マッチ事故を構造的に防止)
 - **awk loader 仕様**: 見出し直後の `空行` / `意図:` で始まる行 / `^# ` コメント行はスキップ、最初の非空非コメント行をパターンとして取得。次の `## ` 見出しに到達したら停止 (自由文追記耐性、編集者が補足を増やしても誤読しない)
 - 各カテゴリの「意図:」コメントは複数行に分けず 1 行で書く (`意図:` で始まる行のみスキップ対象、改行後の続き行は最初のパターン候補と誤読される可能性)
 
-## SKILL.md との同期関係
+## observe-prep.sh との関係 (SST = Single Source of Truth)
 
 ```
-SKILL.md scan_strong_signals():
-  load_pattern "X" を呼ぶ → 本ファイル `## X` 直下の空行+次行を取得
-  echo "ラベル: $(grep -cE "$X")" を出す
-∴ カテゴリ追加 = 本ファイル + SKILL.md の両方更新が必要
+scan-patterns.md (本ファイル、カテゴリ正本)
+  ↓ list_categories で auto-derive
+scripts/observe-prep.sh (走査ロジック、固定実行)
+  ↓ === SCAN_RESULTS === セクションに出力
+SKILL.md (AI 解釈領域、出力を文脈解釈)
+∴ カテゴリ追加 / 削除 = 本ファイル 1 箇所編集だけで反映
+   (旧 scan-strong-signals.sh + SKILL.md 二重定義は 2026-05-05 改修で解消)
 ```
 
 ## 運用ガイド (Hard rule ではなく目安、Claude が一次判定権限)
