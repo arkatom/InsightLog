@@ -1,3 +1,17 @@
+---
+type: handson
+title: Claude Code エコシステムリソース集
+slug: ecosystem-resources
+aliases:
+  - ecosystem-resources
+  - ecosystem
+  - resources
+  - エコシステム
+  - リソース
+  - リンク集
+  - 次に何を見るか
+---
+
 # Claude Code エコシステムリソース集
 
 Part 4「Claude Code を育てる PDCA」の終盤、slide 31「エコシステムの追いかけ方」で講師が紹介できるリソースの一覧。受講者が研修後に「次に何を見るか」の出発点として参照する想定。
@@ -75,5 +89,5 @@ Part 4「Claude Code を育てる PDCA」の終盤、slide 31「エコシステ�
 
 - このファイルを VS Code で開いて、各カテゴリのリンクを 1 つずつ紹介
 - 「研修が終わった後、どこを見続けるか」の地図として機能
-- 受講者には URL をコピーさせるのではなく、「リポジトリ内の `apps/InsightLog/docs/ecosystem-resources.md` に集約してある」と教える方が実用的
+- 受講者には URL をコピーさせるのではなく、「リポジトリ内の `docs/training/ecosystem-resources.md` に集約してある」「`/training ecosystem` で開ける」と教える方が実用的
 - Anthropic 公式 + Zenn / Qiita 日本語コミュニティ の **2 軸** をまず勧める。Discord / Reddit は中級者以上向け
