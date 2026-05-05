@@ -85,6 +85,3 @@ Dexie.js（IndexedDB ラッパー）で 3 テーブル管理:
 
 IndexedDB へのアクセスは必ず `src/lib/db.ts` の Dexie インスタンス経由（直接 `indexedDB.open()` を呼ぶのは禁止、上記「データベース操作」セクション参照）。
 
-## デプロイ
-
-[docs/deployment.md](./docs/deployment.md) を参照。
