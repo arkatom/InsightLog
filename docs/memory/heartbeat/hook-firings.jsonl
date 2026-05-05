@@ -1,0 +1,12 @@
+{"timestamp":"2026-05-05T02:24:12Z","hook":"session-start-record","event":"SessionStart","trigger":"","matched":true,"action":"fired","details":"session-start-time recorded","exit_code":0}
+{"timestamp":"2026-05-05T02:24:12Z","hook":"docs-sync-daily","event":"SessionStart","trigger":"24h-not-elapsed","matched":false,"action":"skip","details":"marker age<86400s","exit_code":0}
+{"timestamp":"2026-05-05T02:24:12Z","hook":"knowledge-scraper-daily","event":"SessionStart","trigger":"24h-not-elapsed","matched":false,"action":"skip","details":"marker age<86400s","exit_code":0}
+{"timestamp":"2026-05-05T02:24:15Z","hook":"session-start-record","event":"SessionStart","trigger":"","matched":true,"action":"fired","details":"session-start-time recorded","exit_code":0}
+{"timestamp":"2026-05-05T02:24:15Z","hook":"docs-sync-daily","event":"SessionStart","trigger":"24h-not-elapsed","matched":false,"action":"skip","details":"marker age<86400s","exit_code":0}
+{"timestamp":"2026-05-05T02:24:15Z","hook":"knowledge-scraper-daily","event":"SessionStart","trigger":"24h-not-elapsed","matched":false,"action":"skip","details":"marker age<86400s","exit_code":0}
+{"timestamp":"2026-05-05T02:24:16Z","hook":"session-start-record","event":"SessionStart","trigger":"","matched":true,"action":"fired","details":"session-start-time recorded","exit_code":0}
+{"timestamp":"2026-05-05T02:24:16Z","hook":"docs-sync-daily","event":"SessionStart","trigger":"24h-not-elapsed","matched":false,"action":"skip","details":"marker age<86400s","exit_code":0}
+{"timestamp":"2026-05-05T02:24:16Z","hook":"knowledge-scraper-daily","event":"SessionStart","trigger":"24h-not-elapsed","matched":false,"action":"skip","details":"marker age<86400s","exit_code":0}
+{"timestamp":"2026-05-05T02:24:16Z","hook":"session-start-record","event":"SessionStart","trigger":"","matched":true,"action":"fired","details":"session-start-time recorded","exit_code":0}
+{"timestamp":"2026-05-05T02:24:16Z","hook":"docs-sync-daily","event":"SessionStart","trigger":"24h-not-elapsed","matched":false,"action":"skip","details":"marker age<86400s","exit_code":0}
+{"timestamp":"2026-05-05T02:24:16Z","hook":"knowledge-scraper-daily","event":"SessionStart","trigger":"24h-not-elapsed","matched":false,"action":"skip","details":"marker age<86400s","exit_code":0}
