@@ -12,6 +12,7 @@
     ".playwright-mcp": true,
     ".playwright-browsers": true,
     ".npm-cache": true,
-    ".gh-config": true
+    ".gh-config": true,
+    ".devcontainer": true
   }
 }
