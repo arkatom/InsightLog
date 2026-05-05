@@ -81,6 +81,37 @@ fi
 # 巨大 jsonl の scan を防ぐサイズ上限 (Devil-Edge#4 反映、デフォルト 50MB)
 MAX_SCAN_BYTES="${OBSERVE_PREP_MAX_SCAN_BYTES:-52428800}"
 
+# stat コマンドの OS 分岐 (2026-05-05 Codespace 実機 bug fix)
+# macOS BSD stat: -f %m (mtime) / -f %z (size)
+# Linux GNU stat: -c %Y (mtime) / -c %s (size)
+# 試行順 `-f %m || -c %Y` だと Linux で `-f` がファイルシステム info として解釈され、
+# `%m` が mountpoint 等の非数値に展開、fallback に到達せず integer compare で破綻する
+if stat --version >/dev/null 2>&1; then
+  # GNU stat (Linux / Codespace devcontainer)
+  STAT_MTIME_FLAGS="-c %Y"
+  STAT_SIZE_FLAGS="-c %s"
+else
+  # BSD stat (macOS)
+  STAT_MTIME_FLAGS="-f %m"
+  STAT_SIZE_FLAGS="-f %z"
+fi
+
+# 整数検証 helper: 非数値 / 空文字を 0 に丸めて integer compare 破綻を防ぐ
+to_int() {
+  case "$1" in
+    ''|*[!0-9]*) echo 0 ;;
+    *) echo "$1" ;;
+  esac
+}
+
+stat_mtime() {
+  to_int "$(stat $STAT_MTIME_FLAGS "$1" 2>/dev/null)"
+}
+
+stat_size() {
+  to_int "$(stat $STAT_SIZE_FLAGS "$1" 2>/dev/null)"
+}
+
 # ---------------------------------------------------------------------------
 # 1. stdin payload (hook 経由) と環境変数を解決
 # ---------------------------------------------------------------------------
@@ -146,7 +177,7 @@ elif [ -d "$PROJECT_JSONL_DIR" ]; then
     # 前回 observe 以降に mtime 更新された全件を対象
     find "$PROJECT_JSONL_DIR" -maxdepth 1 -name '*.jsonl' -type f 2>/dev/null \
       | while IFS= read -r f; do
-          mt=$(stat -f %m "$f" 2>/dev/null || stat -c %Y "$f" 2>/dev/null || echo 0)
+          mt=$(stat_mtime "$f")
           if [ "$mt" -ge "$LAST_OBSERVE_EPOCH" ]; then
             printf '%s\t%s\n' "$mt" "$f"
           fi
@@ -245,7 +276,7 @@ scan_file() {
 
   # Devil-Edge#4 反映: 巨大 jsonl のスキャンを skip して暴走防止
   local fsize
-  fsize=$(stat -f %z "$file" 2>/dev/null || stat -c %s "$file" 2>/dev/null || echo 0)
+  fsize=$(stat_size "$file")
   if [ "$fsize" -gt "$MAX_SCAN_BYTES" ]; then
     echo "--- $file ---"
     echo "[scan SKIPPED] file size ${fsize} bytes > MAX_SCAN_BYTES ${MAX_SCAN_BYTES}。OBSERVE_PREP_MAX_SCAN_BYTES で上限を変更可能"
@@ -305,7 +336,7 @@ echo "jsonl_count: $JSONL_COUNT"
 echo "=== JSONL_PATHS ==="
 if [ -s "$JSONL_LIST_FILE" ]; then
   while IFS= read -r f; do
-    mt=$(stat -f %m "$f" 2>/dev/null || stat -c %Y "$f" 2>/dev/null || echo 0)
+    mt=$(stat_mtime "$f")
     iso=$(date -u -r "$mt" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null \
       || date -u -d "@$mt" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null \
       || echo unknown)
@@ -332,7 +363,7 @@ REFLECT_DIR="$PWD_ABS/docs/memory/reflection"
 if [ -d "$REFLECT_DIR" ]; then
   latest=$(find "$REFLECT_DIR" -maxdepth 1 -name '*.md' -type f 2>/dev/null \
     | while IFS= read -r f; do
-        mt=$(stat -f %m "$f" 2>/dev/null || stat -c %Y "$f" 2>/dev/null || echo 0)
+        mt=$(stat_mtime "$f")
         printf '%s\t%s\n' "$mt" "$f"
       done \
     | sort -rn | head -1 | awk -F'\t' '{print $2}')
