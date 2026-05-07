@@ -10,6 +10,7 @@
       "Bash(npm run build:*)",
       "Bash(npm run dev:*)",
       "Bash(npm run test:*)",
+      "Bash(npm run lint:*)",
       "Bash(npx tsc:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
@@ -17,16 +18,23 @@
       "Bash(git checkout:*)",
       "Bash(git merge:*)",
       "Bash(git worktree:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git branch:*)",
+      "Bash(jq:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
       "Skill(observe)",
       "Skill(evolve)"
     ],
     "deny": [
-      "Bash(rm -rf *)",
-      "Bash(git push --force *)"
+      "Bash(sudo *)",
+      "Bash(npm publish *)"
     ],
     "ask": [
-      "Bash(rm *)",
-      "Bash(git push *)"
+      "Bash(git reset --hard *)",
+      "Bash(git rebase *)"
     ]
   },
   "hooks": {
