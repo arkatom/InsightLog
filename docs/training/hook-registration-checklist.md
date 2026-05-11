@@ -174,7 +174,7 @@ claude
 
 ---
 
-## 実例: observe-check-commit.sh の登録 (リファレンス、実装は実習⑥ で行う)
+## 実例: observe-check-commit.sh の登録 (リファレンス、実装は実習⑦ で行う)
 
 `apps/InsightLog/.claude/hooks/observe-check-commit.sh` 冒頭コメント L47-65 に記載されている公式準拠の登録例:
 
@@ -202,7 +202,7 @@ claude
 - `if: "Bash(git commit *)"` で permission rule 構文を使い `git commit` 系コマンドのみに絞る
 - `command: bash .claude/hooks/observe-check-commit.sh` でスクリプトを実行
 
-**注意**: 上記は **リファレンス例** であり、`apps/InsightLog/.claude/settings.json` には実際には未登録 (実習⑥ で受講者が手動登録する想定)。settings.json には現在 `mcp__playwright__browser_take_screenshot` matcher の `open-screenshot.sh` のみ登録されている。
+**注意**: 上記は **リファレンス例** であり、`apps/InsightLog/.claude/settings.json` には実際には未登録 (実習⑦ で受講者が手動登録する想定)。settings.json には現在 `mcp__playwright__browser_take_screenshot` matcher の `open-screenshot.sh` のみ登録されている。
 
 スクリプト本体: `apps/InsightLog/.claude/hooks/observe-check-commit.sh`
 冒頭 1-67 行のコメントに「なぜ PreToolUse じゃなく PostToolUse か」「なぜ exit 0 固定か」「なぜ JSON additionalContext を返すか」「`matcher` + `if` の使い分け」が公式 URL 引用付きで解説されている。
