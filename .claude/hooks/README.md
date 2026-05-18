@@ -1,48 +1,66 @@
 # Claude Code Auto-Log Hooks
 
-Claude Code の hooks を「タイムカード」として使い、作業イベントを `.claude/tmp/autolog/events.jsonl` に追記するスクリプト群。後段で InsightLog のタスクログにインポートする想定。
+Claude Code の hooks を「タイムカード」として使い、作業イベントを **追記専用 JSONL** に積むスクリプト群。**1日1回まとめて InsightLog にインポートする運用** を前提に設計している。リポジトリ横断のタスク（複数 repo を行き来する開発）にも対応する。
 
 ## 設計方針
 
-- **`.claude/tmp/` 配下にだけ書き出す**（gitignore 済み）。リポジトリは汚さない。
+- **既定の出力先はユーザーホーム配下**：`$HOME/.claude/tmp/autolog/events.jsonl`。複数リポジトリの作業を1箇所に集約する。
 - **追記専用 JSONL**。並行追記に強く、壊れにくい。
 - **失敗してもツール実行をブロックしない**。フックスクリプトは常に `exit 0`。
 - **プロジェクト内 `.claude/settings.json` で配線**。ユーザー設定 (`~/.claude/settings.json`) は触らない。
+- **イベントには必ず `repo`（git toplevel）と `repo_remote`（origin URL）を載せる**。横断集計の主キー。
+
+## 出力先の解決順
+
+1. `INSIGHTLOG_AUTOLOG_DIR` 環境変数があればそれを使う（テスト・個別運用向け）
+2. なければ `$HOME/.claude/tmp/autolog/`（既定。リポジトリ横断）
+3. `$HOME` も無い場合は `$CLAUDE_PROJECT_DIR/.claude/tmp/autolog` または `$PWD/.claude/tmp/autolog`
+
+リポ内 `.claude/tmp/` は `.gitignore` 済みなので、override してもコミット汚染しない。
 
 ## ファイル配置
 
 ```
-.claude/
-  hooks/
-    autolog-common.sh         # 共通: JSONL 追記関数・パス決定
-    autolog-session-start.sh  # SessionStart 用
-    autolog-stop.sh           # Stop 用
-    autolog-posttool.sh       # PostToolUse(Bash) 用、git 系コマンドを検出
-    README.md                 # 本ファイル
-  tmp/                        # gitignored
-    autolog/
-      events.jsonl            # メインのイベントログ（追記専用）
-      sessions/
-        <session_id>.start    # 開始 ts 保存。Stop hook で duration 計算に使う
+.claude/hooks/
+  autolog-common.sh         # 共通: 出力先解決・タイムスタンプ・JSONL 追記・git 情報取得
+  autolog-session-start.sh  # SessionStart 用
+  autolog-stop.sh           # Stop 用（毎ターン累積メトリクス）
+  autolog-posttool.sh       # PostToolUse(Bash) 用、git 系コマンドを検出
+  autolog-daily-report.sh   # 日次サマリーを Markdown で標準出力
+  README.md                 # 本ファイル
+
+$HOME/.claude/tmp/autolog/      # 既定の出力先（または INSIGHTLOG_AUTOLOG_DIR）
+  events.jsonl                  # メインのイベントログ（全リポ集約・追記専用）
+  sessions/
+    <session_id>.start          # 開始 ts 保存。Stop hook の duration fallback に使う
 ```
 
 ## イベントスキーマ
 
-各行は 1 JSON。`ts` は ISO 8601 UTC、`session_id` は Claude Code が提供する値。
+各行は 1 JSON。`ts` は ISO 8601 UTC ミリ秒精度。`session_id` は Claude Code が hook 入力で供給する値。
+
+### 共通フィールド（多くのイベントに付く）
+
+| field | 由来 | 備考 |
+|---|---|---|
+| `ts` | スクリプト実行時刻 | UTC ISO 8601 |
+| `session_id` | hook 入力 `.session_id` | Claude Code 採番 |
+| `cwd` | hook 入力 `.cwd` | Claude Code の作業ディレクトリ。hook 内で `cd` して以下の git 情報を取る |
+| `repo` | `git rev-parse --show-toplevel` | リポジトリのトップレベル絶対パス |
+| `repo_remote` | `git remote get-url origin`（不在時は最初の remote） | 横断集計の主キー候補 |
+| `branch` | `git symbolic-ref --short HEAD` | detached HEAD では省略 |
+
+git リポでないディレクトリで実行された場合は `repo` / `branch` / `repo_remote` は省略される。
 
 ### `session_start`
 
 ```json
-{"ts":"2026-05-18T10:00:01.234Z","type":"session_start","session_id":"abc123","cwd":"/workspaces/InsightLog","branch":"feat/x","head_sha":"a1b2c3d","source":"startup"}
+{"ts":"...","type":"session_start","session_id":"...","cwd":"...","repo":"...","repo_remote":"...","branch":"feat/x","head_sha":"a1b2c3d","source":"startup"}
 ```
 
-| field | 由来 | 備考 |
+| 追加 field | 由来 | 備考 |
 |---|---|---|
-| `ts` | 実行時刻 | UTC ISO 8601 |
-| `session_id` | hook 入力 `.session_id` | Claude Code 採番 |
-| `cwd` | hook 入力 `.cwd` | 実行ディレクトリ |
-| `branch` | `git symbolic-ref` | git リポでない場合は省略 |
-| `head_sha` | `git rev-parse HEAD` | short SHA |
+| `head_sha` | `git rev-parse --short HEAD` | セッション開始時点の HEAD |
 | `source` | hook 入力 `.source` | `startup` / `resume` / `clear` / `compact` |
 
 ### `session_progress`
@@ -50,46 +68,46 @@ Claude Code の hooks を「タイムカード」として使い、作業イベ�
 Claude Code の `Stop` フックは **毎ターン終了時に発火する**（セッション終了時だけではない）。なので各行は「そのターン終了時点の累積値スナップショット」として読む。インポート時はセッション内の最終行を「セッション終了時の値」として扱う。
 
 ```json
-{"ts":"2026-05-18T11:05:00.567Z","type":"session_progress","session_id":"abc123","duration_ms":3899333,"cost_usd":1.234,"lines_added":120,"lines_removed":35}
+{"ts":"...","type":"session_progress","session_id":"...","repo":"...","branch":"...","duration_ms":3899333,"cost_usd":1.234,"lines_added":120,"lines_removed":35}
 ```
 
-| field | 由来 | 備考 |
+| 追加 field | 由来 | 備考 |
 |---|---|---|
-| `duration_ms` | Stop hook 入力 `.cost.total_duration_ms`、なければ `session_start.ts` との差分から計算 | 累積 |
-| `cost_usd` | Stop hook 入力 `.cost.total_cost_usd` | 累積。取れない環境では省略 |
-| `lines_added` / `lines_removed` | Stop hook 入力 `.cost.total_lines_*` | 累積。取れない環境では省略 |
+| `duration_ms` | `.cost.total_duration_ms`、無ければ `session_start.ts` との差分で算出 | 累積 |
+| `cost_usd` | `.cost.total_cost_usd` | 累積。取れない環境では省略 |
+| `lines_added` / `lines_removed` | `.cost.total_lines_*` | 累積。取れない環境では省略 |
 
 ### `git_commit`
 
 ```json
-{"ts":"...","type":"git_commit","session_id":"...","branch":"feat/x","commit":"a1b2c3","subject":"feat: add hooks","files":12,"cwd":"..."}
+{"ts":"...","type":"git_commit","session_id":"...","cwd":"...","repo":"...","repo_remote":"...","branch":"feat/x","commit":"a1b2c3","subject":"feat: ...","files":12}
 ```
 
-| field | 由来 | 備考 |
+| 追加 field | 由来 | 備考 |
 |---|---|---|
 | `commit` | `git rev-parse --short HEAD` | post-commit 時点の HEAD |
-| `subject` | `git log -1 --pretty=%s` | 1行目のみ |
-| `files` | `git show --stat HEAD` から件数抽出 | 変更ファイル数 |
+| `subject` | `git log -1 --pretty=%s` | コミットメッセージ1行目 |
+| `files` | `git diff-tree --no-commit-id --name-only -r HEAD \| wc -l` | 変更ファイル数 |
 
 ### `git_push`
 
 ```json
-{"ts":"...","type":"git_push","session_id":"...","branch":"feat/x","command":"git push origin feat/x","cwd":"..."}
+{"ts":"...","type":"git_push","session_id":"...","cwd":"...","repo":"...","branch":"feat/x","command":"git push origin feat/x"}
 ```
 
-push 完了は「完了候補」シグナルとして使う。実際の commit 範囲は別途 InsightLog 側でブランチ × 時間窓から決定する。
+push 完了は「完了候補」シグナルとして使う。実際の commit 範囲は別途 InsightLog 側で `repo × branch × 時間窓` から決定する。
 
 ### `git_checkout`
 
 ```json
-{"ts":"...","type":"git_checkout","session_id":"...","to_branch":"feat/y","from_branch":"feat/x","command":"git switch feat/y","cwd":"..."}
+{"ts":"...","type":"git_checkout","session_id":"...","cwd":"...","repo":"...","branch":"feat/y","to_branch":"feat/y","from_branch":"feat/x","command":"git switch feat/y"}
 ```
 
-`from_branch` は `git reflog -1 HEAD@{1}` から抽出（取れない場合は省略）。
+`from_branch` は `git reflog -1 HEAD@{0}` の `gs` フォーマットから抽出（`checkout: moving from X to Y` 形式）。取れない場合は省略。
 
 ## hooks 配線
 
-`.claude/settings.json` の `hooks` に以下を登録：
+`.claude/settings.json` の `hooks` に登録（このリポでは設定済み）：
 
 ```jsonc
 {
@@ -107,21 +125,73 @@ push 完了は「完了候補」シグナルとして使う。実際の commit �
 }
 ```
 
-## 確認方法
+別リポでも同じ運用にしたい場合は、各リポの `.claude/settings.json` に同じ配線を書く。出力先は既定で `$HOME/.claude/tmp/autolog/` に集約されるので、ログは一箇所に貯まる。
+
+## 日次レポート
+
+1日の終わりに `autolog-daily-report.sh` を実行すると、その日のセッションとコミットを repo × branch でグルーピングした Markdown が出る。これを InsightLog の手動入力時のリファレンスに使う。
 
 ```bash
-# 直近のイベントを見る
-tail -n 20 .claude/tmp/autolog/events.jsonl | jq -c '{ts, type, branch, session_id}'
+# 今日（UTC）
+.claude/hooks/autolog-daily-report.sh
+
+# 指定日
+.claude/hooks/autolog-daily-report.sh 2026-05-18
+
+# 範囲
+.claude/hooks/autolog-daily-report.sh --since 2026-05-15 --until 2026-05-18
+```
+
+出力例：
+
+```markdown
+# InsightLog autolog 日次レポート
+
+- 期間: 2026-05-18 〜 2026-05-18 (UTC)
+- イベント総数: 42 / セッション開始: 3 / コミット: 8 / プッシュ: 2 / ブランチ切替: 5
+
+## セッション集計
+
+| session_id | repo | branch | duration | cost(USD) | +行/-行 |
+|---|---|---|---:|---:|---:|
+| abc12345 | InsightLog | feat/x | 1h20m | $1.23 | +120/-35 |
+| def67890 | other-repo | feat/y | 45m | $0.67 | +40/-10 |
+
+## リポジトリ × ブランチ別コミット
+
+### InsightLog / feat/x (3 commits)
+- `a1b2c3d` feat: 〜〜 — 2026-05-18T10:32:14Z
+...
+```
+
+## アドホックなクエリ
+
+```bash
+EVENTS=$HOME/.claude/tmp/autolog/events.jsonl
+
+# 直近のイベント
+tail -n 20 $EVENTS | jq -c '{ts, type, repo, branch}'
 
 # あるセッションの全イベント
-jq -c 'select(.session_id == "<id>")' .claude/tmp/autolog/events.jsonl
+jq -c 'select(.session_id == "<id>")' $EVENTS
 
-# 累計コスト
-jq -s 'map(select(.type=="session_stop") | .cost_usd) | add' .claude/tmp/autolog/events.jsonl
+# repo ごとの累計コスト（最終 session_progress を採用）
+jq -s '
+  map(select(.type=="session_progress"))
+  | group_by(.session_id)
+  | map({repo: (.[0].repo // ""), cost: (last.cost_usd // 0)})
+  | group_by(.repo)
+  | map({repo: .[0].repo, total: (map(.cost) | add)})
+' $EVENTS
+
+# 今日触ったブランチ一覧（repo × branch）
+TODAY=$(date -u +%Y-%m-%d)
+jq -r --arg d $TODAY 'select(.ts | startswith($d)) | "\(.repo // "?") / \(.branch // "?")"' $EVENTS | sort -u
 ```
 
 ## 既知の制約
 
-1. **Claude Code 起動中の作業しか測れない**。手動の作業時間は別途記録が要る。
-2. **複数 Claude Code 並行起動**は session_id で識別できるが、人間が「同じタスクをやっていた」ことを判別するのは後段の InsightLog 側ロジック。
-3. **`git push` 後の HEAD 範囲は post-hook では取れない**。push 直前にローカル `@{u}..HEAD` を残す PreToolUse を後で追加する余地あり。
+1. **Claude Code 起動中の作業しか測れない**。エディタだけ開いて作業した時間は別途記録が要る。
+2. **複数 Claude Code 並行起動** は session_id で識別できるが、人間が「同じタスクをやっていた」ことを後段で紐付ける必要がある（commit メッセージや branch 名で判別）。
+3. **`cd /other && git ...` で別 repo を触った時**、hook は入力 `.cwd` をベースに git 情報を読むので大半は正しく検出するが、`.cwd` 更新が反映されていないタイミングでは元 repo として記録される可能性がある。確実に切り替えたい時は `cd` を独立した Bash 呼び出しにする。
+4. **`git push` 後の HEAD 範囲** は post-hook では取れない。必要になったら push 直前に `@{u}..HEAD` を残す PreToolUse を追加する。
