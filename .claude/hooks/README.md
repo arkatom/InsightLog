@@ -150,6 +150,41 @@ push 完了は「完了候補」シグナルとして使う。実際の commit �
 
 別リポでも同じ運用にしたい場合は、各リポの `.claude/settings.json` に同じ配線を書く。出力先は既定で `$HOME/.claude/tmp/autolog/` に集約されるので、ログは一箇所に貯まる。
 
+## events.jsonl の削減
+
+events.jsonl は追記専用で、放置すると単調に増え続ける。削減方法は 2 つあり、用途で使い分ける。
+
+### 1. ブラウザ取り込み時の物理削除（自動・推奨）
+
+ImportModal で下書きを確定（タスクとして保存）した瞬間に、events.jsonl から該当イベントが物理削除される。
+
+- File System Access API が必要（Chromium 系のみ）
+- 初回のファイル選択時に「書込権限」のダイアログが出る。許可すれば以降の取り込みでは自動削除される
+- 並行書込 race の対策として「書き戻し直前に再読込して新規追記分を保全」する実装
+- 権限が拒否されている / 非対応ブラウザでは IndexedDB の「取り込み済み」フラグだけで重複防止する（events.jsonl は変わらない）
+
+実装は `src/lib/autologMaintenance.ts` の `purgeImportedFromJsonl`。
+
+### 2. `autolog-compact.sh` — session_progress の集約圧縮
+
+同一 `session_id` の `session_progress` は累積値なので、最新 1 件だけ残せば情報損失なし。`session_start` / `session_end` / `git_*` は全部維持する。
+
+```bash
+# デフォルト出力先を圧縮
+.claude/hooks/autolog-compact.sh
+
+# 任意のファイルを圧縮
+.claude/hooks/autolog-compact.sh /path/to/events.jsonl
+
+# dry-run（行数の試算だけ）
+INSIGHTLOG_COMPACT_DRY_RUN=1 .claude/hooks/autolog-compact.sh
+```
+
+- 並行追記対策: 圧縮中の追記分は `tail -c` で末尾だけ取り出して連結
+- 50 ターン/セッションのファイルなら 50→1 で約 98% 削減
+
+長期運用の目安: 月初に手動実行 or cron。自動化したくなったら `autolog-stop.sh` から行数閾値超過で呼ぶ追加可能（今は手動）。
+
 ## 日次レポート
 
 1日の終わりに `autolog-daily-report.sh` を実行すると、その日のセッションとコミットを repo × branch でグルーピングした Markdown が出る。これを InsightLog の手動入力時のリファレンスに使う。
@@ -218,3 +253,4 @@ jq -r --arg d $TODAY 'select(.ts | startswith($d)) | "\(.repo // "?") / \(.branc
 2. **複数 Claude Code 並行起動** は session_id で識別できるが、人間が「同じタスクをやっていた」ことを後段で紐付ける必要がある（commit メッセージや branch 名で判別）。
 3. **`cd /other && git ...` で別 repo を触った時**、hook は入力 `.cwd` をベースに git 情報を読むので大半は正しく検出するが、`.cwd` 更新が反映されていないタイミングでは元 repo として記録される可能性がある。確実に切り替えたい時は `cd` を独立した Bash 呼び出しにする。
 4. **`git push` 後の HEAD 範囲** は post-hook では取れない。必要になったら push 直前に `@{u}..HEAD` を残す PreToolUse を追加する。
+5. **ブラウザ取り込み時の物理削除と autolog-compact.sh の race**: ほぼ無視できる時間窓だが、両者を全く同時に実行すると新規追記分のロストが理論上ありうる。手動 compact は Claude Code 非稼働時に実行が安全。
