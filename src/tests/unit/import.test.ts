@@ -201,6 +201,53 @@ describe('aggregateToDrafts — groupBy: branch (日付を無視)', () => {
   });
 });
 
+describe('aggregateToDrafts — session_end イベントとトークン累計', () => {
+  it('session_end も session_progress と同じく累積メトリクスとして扱う', () => {
+    const lines = [
+      '{"ts":"2026-05-18T10:00:00.000Z","type":"git_commit","session_id":"sE","repo":"/work/x","branch":"main","commit":"c1","subject":"feat"}',
+      '{"ts":"2026-05-18T10:30:00.000Z","type":"session_progress","session_id":"sE","repo":"/work/x","branch":"main","duration_ms":1500000,"turn_count":5,"output_tokens":1000}',
+      // 後から session_end が来れば、より新しい値が採用される
+      '{"ts":"2026-05-18T11:00:00.000Z","type":"session_end","session_id":"sE","repo":"/work/x","branch":"main","end_reason":"clear","duration_ms":3600000,"turn_count":10,"input_tokens":50,"output_tokens":2000,"cache_read_input_tokens":100000,"cache_creation_input_tokens":5000}',
+    ].join('\n');
+    const drafts = aggregateToDrafts(parseEventsJsonl(lines));
+    expect(drafts).toHaveLength(1);
+    const d = drafts[0];
+    // session_end は session_progress より新しいので最新値が採用される: 3600000ms = 60分
+    expect(d.duration).toBe(60);
+    expect(d.meta.turnCount).toBe(10);
+    expect(d.meta.inputTokens).toBe(50);
+    expect(d.meta.outputTokens).toBe(2000);
+    expect(d.meta.cacheReadInputTokens).toBe(100000);
+    expect(d.meta.cacheCreationInputTokens).toBe(5000);
+  });
+
+  it('複数セッションのトークンは合算される', () => {
+    const lines = [
+      '{"ts":"2026-05-18T10:00:00.000Z","type":"git_commit","session_id":"sA","repo":"/work/x","branch":"main","commit":"c1","subject":"a"}',
+      '{"ts":"2026-05-18T10:30:00.000Z","type":"session_progress","session_id":"sA","repo":"/work/x","branch":"main","duration_ms":1800000,"turn_count":3,"output_tokens":500}',
+      '{"ts":"2026-05-18T11:00:00.000Z","type":"git_commit","session_id":"sB","repo":"/work/x","branch":"main","commit":"c2","subject":"b"}',
+      '{"ts":"2026-05-18T11:30:00.000Z","type":"session_progress","session_id":"sB","repo":"/work/x","branch":"main","duration_ms":900000,"turn_count":7,"output_tokens":800}',
+    ].join('\n');
+    const drafts = aggregateToDrafts(parseEventsJsonl(lines));
+    expect(drafts).toHaveLength(1);
+    const d = drafts[0];
+    // 1800000 + 900000 = 2700000ms = 45分
+    expect(d.duration).toBe(45);
+    expect(d.meta.turnCount).toBe(10);     // 3 + 7
+    expect(d.meta.outputTokens).toBe(1300); // 500 + 800
+  });
+
+  it('notes に累計ターン数とトークンが表示される', () => {
+    const lines = [
+      '{"ts":"2026-05-18T10:00:00.000Z","type":"git_commit","session_id":"sN","repo":"/work/x","branch":"main","commit":"c1","subject":"feat: x"}',
+      '{"ts":"2026-05-18T10:30:00.000Z","type":"session_progress","session_id":"sN","repo":"/work/x","branch":"main","duration_ms":1800000,"turn_count":42,"input_tokens":100,"output_tokens":9999}',
+    ].join('\n');
+    const drafts = aggregateToDrafts(parseEventsJsonl(lines));
+    expect(drafts[0].notes).toContain('- 累計ターン数: 42');
+    expect(drafts[0].notes).toContain('- 累計トークン: 入力 100 / 出力 9999');
+  });
+});
+
 describe('aggregateToDrafts — duration fallback', () => {
   it('全 session_progress に duration_ms が無い時、firstTs〜lastTs の経過時間で代用する', () => {
     // hook 入力に duration が含まれない実環境の挙動を模擬: progress イベントの duration_ms 抜き

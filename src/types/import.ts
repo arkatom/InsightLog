@@ -9,6 +9,7 @@ import type { Task } from './task';
 export type AutologEvent =
   | SessionStartEvent
   | SessionProgressEvent
+  | SessionEndEvent
   | GitCommitEvent
   | GitPushEvent
   | GitCheckoutEvent;
@@ -31,9 +32,29 @@ export interface SessionStartEvent extends AutologEventBase {
 export interface SessionProgressEvent extends AutologEventBase {
   type: 'session_progress';
   duration_ms?: number;
+  /** assistant メッセージ数（≒ ターン数） */
+  turn_count?: number;
+  input_tokens?: number;
+  output_tokens?: number;
+  cache_read_input_tokens?: number;
+  cache_creation_input_tokens?: number;
+  /** 旧スキーマ互換用（現在は出力しない） */
   cost_usd?: number;
   lines_added?: number;
   lines_removed?: number;
+}
+
+export interface SessionEndEvent extends AutologEventBase {
+  type: 'session_end';
+  end_reason?: string;
+  duration_ms?: number;
+  turn_count?: number;
+  input_tokens?: number;
+  output_tokens?: number;
+  cache_read_input_tokens?: number;
+  cache_creation_input_tokens?: number;
+  /** 旧スキーマ互換（hooks では現状出力しないが、外部ツールが渡してくる可能性に備える） */
+  cost_usd?: number;
 }
 
 export interface GitCommitEvent extends AutologEventBase {
@@ -78,7 +99,15 @@ export type DraftTask = Pick<
     commitCount: number;
     firstTs: string;
     lastTs: string;
+    /** 旧スキーマ互換: hooks 側で計算していた累計コスト */
     costUsd?: number;
+    /** transcript ベースで集計したセッション総ターン数 */
+    turnCount?: number;
+    /** 累計トークン使用量 */
+    inputTokens?: number;
+    outputTokens?: number;
+    cacheReadInputTokens?: number;
+    cacheCreationInputTokens?: number;
   };
 };
 

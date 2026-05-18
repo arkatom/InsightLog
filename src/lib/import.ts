@@ -4,10 +4,14 @@ import type {
   AutologEvent,
   SessionStartEvent,
   SessionProgressEvent,
+  SessionEndEvent,
   GitCommitEvent,
   DraftTask,
   AggregateOptions,
 } from '@/types/import';
+
+/** session_progress / session_end どちらも累積メトリクスを持つので統一して扱う */
+type SessionProgressLike = SessionProgressEvent | SessionEndEvent;
 
 /**
  * events.jsonl のテキスト全体をパースする。空行・パース失敗行はスキップ。
@@ -40,6 +44,7 @@ function isAutologEvent(obj: unknown): obj is AutologEvent {
   return [
     'session_start',
     'session_progress',
+    'session_end',
     'git_commit',
     'git_push',
     'git_checkout',
@@ -113,7 +118,7 @@ export function aggregateToDrafts(
     sessionIds: Set<string>;
     commits: GitCommitEvent[];
     starts: SessionStartEvent[];
-    progress: SessionProgressEvent[];
+    progress: SessionProgressLike[];
     firstTs: string;
     lastTs: string;
   };
@@ -155,6 +160,8 @@ export function aggregateToDrafts(
         b.starts.push(e);
         break;
       case 'session_progress':
+      case 'session_end':
+        // どちらも累積メトリクスを持つ。last-by-session で最新を採用する
         b.progress.push(e);
         break;
       // git_push / git_checkout は集計に直接寄与しない（境界候補のみ）
@@ -191,7 +198,7 @@ type RawBucket = {
   sessionIds: Set<string>;
   commits: GitCommitEvent[];
   starts: SessionStartEvent[];
-  progress: SessionProgressEvent[];
+  progress: SessionProgressLike[];
   firstTs: string;
   lastTs: string;
 };
@@ -205,7 +212,7 @@ function splitByGap(b: RawBucket, gapHours: number): RawBucket[] {
   type AnyEvent =
     | { kind: 'commit'; e: GitCommitEvent }
     | { kind: 'start'; e: SessionStartEvent }
-    | { kind: 'progress'; e: SessionProgressEvent };
+    | { kind: 'progress'; e: SessionProgressLike };
   const all: AnyEvent[] = [
     ...b.commits.map((e) => ({ kind: 'commit' as const, e })),
     ...b.starts.map((e) => ({ kind: 'start' as const, e })),
@@ -252,12 +259,12 @@ function buildDraft(b: {
   sessionIds: Set<string>;
   commits: GitCommitEvent[];
   starts: SessionStartEvent[];
-  progress: SessionProgressEvent[];
+  progress: SessionProgressLike[];
   firstTs: string;
   lastTs: string;
 }): DraftTask {
-  // duration: セッション単位の最新 session_progress を合算
-  const lastBySession = new Map<string, SessionProgressEvent>();
+  // duration / トークン: セッション単位の最新 session_progress / session_end を合算
+  const lastBySession = new Map<string, SessionProgressLike>();
   for (const p of b.progress) {
     const cur = lastBySession.get(p.session_id);
     if (!cur || p.ts > cur.ts) {
@@ -266,6 +273,11 @@ function buildDraft(b: {
   }
   let durationMs = 0;
   let costUsd = 0;
+  let turnCount = 0;
+  let inputTokens = 0;
+  let outputTokens = 0;
+  let cacheReadInputTokens = 0;
+  let cacheCreationInputTokens = 0;
   let hasDuration = false;
   for (const p of lastBySession.values()) {
     if (typeof p.duration_ms === 'number') {
@@ -273,6 +285,13 @@ function buildDraft(b: {
       hasDuration = true;
     }
     if (typeof p.cost_usd === 'number') costUsd += p.cost_usd;
+    if (typeof p.turn_count === 'number') turnCount += p.turn_count;
+    if (typeof p.input_tokens === 'number') inputTokens += p.input_tokens;
+    if (typeof p.output_tokens === 'number') outputTokens += p.output_tokens;
+    if (typeof p.cache_read_input_tokens === 'number')
+      cacheReadInputTokens += p.cache_read_input_tokens;
+    if (typeof p.cache_creation_input_tokens === 'number')
+      cacheCreationInputTokens += p.cache_creation_input_tokens;
   }
 
   // duration_ms が一切取れていない場合のフォールバック:
@@ -318,6 +337,9 @@ function buildDraft(b: {
   noteLines.push(`- 期間: ${b.firstTs} 〜 ${b.lastTs}`);
   noteLines.push(`- セッション数: ${b.sessionIds.size}`);
   noteLines.push(`- コミット数: ${sortedCommits.length}`);
+  if (turnCount > 0) noteLines.push(`- 累計ターン数: ${turnCount}`);
+  if (outputTokens > 0)
+    noteLines.push(`- 累計トークン: 入力 ${inputTokens} / 出力 ${outputTokens}`);
   if (costUsd > 0) noteLines.push(`- 累計 Claude コスト: $${costUsd.toFixed(3)}`);
 
   // category: commit subject 先頭の conventional commits っぽいプレフィックスで推測
@@ -351,6 +373,12 @@ function buildDraft(b: {
       firstTs: b.firstTs,
       lastTs: b.lastTs,
       costUsd: costUsd > 0 ? costUsd : undefined,
+      turnCount: turnCount > 0 ? turnCount : undefined,
+      inputTokens: inputTokens > 0 ? inputTokens : undefined,
+      outputTokens: outputTokens > 0 ? outputTokens : undefined,
+      cacheReadInputTokens: cacheReadInputTokens > 0 ? cacheReadInputTokens : undefined,
+      cacheCreationInputTokens:
+        cacheCreationInputTokens > 0 ? cacheCreationInputTokens : undefined,
     },
   };
 }
