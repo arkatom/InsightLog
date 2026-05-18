@@ -1,9 +1,19 @@
-import { useState, useMemo, useRef } from 'react';
-import { Upload, ArrowLeft, GitBranch, Clock, FileText } from 'lucide-react';
+import { useState, useMemo, useRef, useEffect } from 'react';
+import { Upload, ArrowLeft, GitBranch, Clock, FileText, EyeOff, Eye, RefreshCw } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { TaskForm } from '@/components/task/TaskForm';
 import { parseEventsJsonl, aggregateToDrafts } from '@/lib/import';
+import { useImportedDrafts } from '@/hooks/useImportedDrafts';
+import {
+  isFsAccessSupported,
+  pickJsonlFile,
+  getRememberedSource,
+  ensureReadPermission,
+  rememberSource,
+  readHandleAsText,
+} from '@/lib/fsAccess';
+import type { AutologSource } from '@/lib/db';
 import type { DraftTask, AutologEvent } from '@/types/import';
 import { toast } from 'sonner';
 
@@ -20,34 +30,89 @@ export function ImportModal({ isOpen, onClose }: ImportModalProps) {
   const [since, setSince] = useState<string>(() => today());
   const [until, setUntil] = useState<string>(() => today());
   const [editingKey, setEditingKey] = useState<string | null>(null);
-  const [completedKeys, setCompletedKeys] = useState<Set<string>>(new Set());
+  const [showImported, setShowImported] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // 取り込み済み draftKey の永続セット
+  const { importedKeys, recordImport } = useImportedDrafts();
+
   // 期間フィルタを掛けた下書き
-  const drafts = useMemo(() => {
+  const allDrafts = useMemo(() => {
     return aggregateToDrafts(events, {
       since: since || undefined,
       until: until || undefined,
     });
   }, [events, since, until]);
 
-  const remainingDrafts = drafts.filter((d) => !completedKeys.has(d.draftKey));
-  const editingDraft = drafts.find((d) => d.draftKey === editingKey);
+  // 取り込み済みを除外（showImported が true の時は全件表示）
+  const visibleDrafts = showImported
+    ? allDrafts
+    : allDrafts.filter((d) => !importedKeys.has(d.draftKey));
 
+  const remainingCount = allDrafts.filter((d) => !importedKeys.has(d.draftKey)).length;
+  const importedCount = allDrafts.length - remainingCount;
+  const editingDraft = allDrafts.find((d) => d.draftKey === editingKey);
+
+  const ingestText = (text: string, fileLabel: string): boolean => {
+    const parsed = parseEventsJsonl(text);
+    if (parsed.length === 0) {
+      toast.error(`${fileLabel} に有効なイベントが見つかりませんでした`);
+      return false;
+    }
+    setEvents(parsed);
+    setView('list');
+    toast.success(`${parsed.length} 件のイベントを読み込みました`);
+    return true;
+  };
+
+  /** 通常の <input type=file> 経由（FileSystemFileHandle 取れない） */
   const handleFile = async (file: File) => {
     try {
       const text = await file.text();
-      const parsed = parseEventsJsonl(text);
-      if (parsed.length === 0) {
-        toast.error('events.jsonl に有効なイベントが見つかりませんでした');
-        return;
+      if (ingestText(text, file.name)) {
+        // handle 無しでも filename だけは記憶（次回フォールバック表示用）
+        await rememberSource(null, file.name);
       }
-      setEvents(parsed);
-      setCompletedKeys(new Set());
-      setView('list');
-      toast.success(`${parsed.length} 件のイベントを読み込みました`);
     } catch (err) {
       toast.error('ファイルの読み込みに失敗しました');
+      console.error(err);
+    }
+  };
+
+  /** File System Access API 経由でピック → handle を IndexedDB に保存 */
+  const handlePickWithFsApi = async () => {
+    try {
+      const handle = await pickJsonlFile();
+      if (!handle) return; // キャンセル
+      const ok = await ensureReadPermission(handle);
+      if (!ok) {
+        toast.error('読み込み権限が拒否されました');
+        return;
+      }
+      const text = await readHandleAsText(handle);
+      if (ingestText(text, handle.name)) {
+        await rememberSource(handle, handle.name);
+      }
+    } catch (err) {
+      toast.error('ファイルの読み込みに失敗しました');
+      console.error(err);
+    }
+  };
+
+  /** 前回のハンドルから一発で再読込 */
+  const handleReadSaved = async (handle: FileSystemFileHandle) => {
+    try {
+      const ok = await ensureReadPermission(handle);
+      if (!ok) {
+        toast.error('読み込み権限が拒否されました');
+        return;
+      }
+      const text = await readHandleAsText(handle);
+      if (ingestText(text, handle.name)) {
+        await rememberSource(handle, handle.name);
+      }
+    } catch (err) {
+      toast.error('前回のファイルの読み込みに失敗しました（消えた可能性があります）');
       console.error(err);
     }
   };
@@ -57,9 +122,15 @@ export function ImportModal({ isOpen, onClose }: ImportModalProps) {
     setView('edit');
   };
 
-  const handleSaved = () => {
-    if (editingKey) {
-      setCompletedKeys((prev) => new Set(prev).add(editingKey));
+  const handleSaved = async (taskId: string) => {
+    if (editingDraft) {
+      try {
+        await recordImport(editingDraft, taskId);
+      } catch (err) {
+        console.error('取り込み済み記録に失敗しました', err);
+        // 記録失敗は致命的ではないので toast で警告するだけ
+        toast.error('取り込み記録の保存に失敗しました（タスク自体は保存済み）');
+      }
     }
     setEditingKey(null);
     setView('list');
@@ -72,7 +143,6 @@ export function ImportModal({ isOpen, onClose }: ImportModalProps) {
 
   const handleReset = () => {
     setEvents([]);
-    setCompletedKeys(new Set());
     setEditingKey(null);
     setView('file');
   };
@@ -89,20 +159,28 @@ export function ImportModal({ isOpen, onClose }: ImportModalProps) {
   return (
     <Modal isOpen={isOpen} onClose={handleCloseModal} title="autolog インポート">
       {view === 'file' && (
-        <FileView fileInputRef={fileInputRef} onFile={handleFile} />
+        <FileView
+          fileInputRef={fileInputRef}
+          onFile={handleFile}
+          onPickWithFsApi={handlePickWithFsApi}
+          onReadSaved={handleReadSaved}
+        />
       )}
 
       {view === 'list' && (
         <ListView
-          drafts={drafts}
-          completedKeys={completedKeys}
+          drafts={visibleDrafts}
+          importedKeys={importedKeys}
           since={since}
           until={until}
           onChangeSince={setSince}
           onChangeUntil={setUntil}
           onEdit={handleStartEdit}
           onReset={handleReset}
-          remainingCount={remainingDrafts.length}
+          remainingCount={remainingCount}
+          importedCount={importedCount}
+          showImported={showImported}
+          onToggleShowImported={() => setShowImported((v) => !v)}
         />
       )}
 
@@ -116,10 +194,21 @@ export function ImportModal({ isOpen, onClose }: ImportModalProps) {
 function FileView({
   fileInputRef,
   onFile,
+  onPickWithFsApi,
+  onReadSaved,
 }: {
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   onFile: (file: File) => void;
+  onPickWithFsApi: () => void;
+  onReadSaved: (handle: FileSystemFileHandle) => void;
 }) {
+  const [saved, setSaved] = useState<AutologSource | undefined>();
+  const fsSupported = isFsAccessSupported();
+
+  useEffect(() => {
+    getRememberedSource().then(setSaved);
+  }, []);
+
   return (
     <div className="space-y-4">
       <p className="text-sm text-primary-600">
@@ -128,6 +217,35 @@ function FileView({
       <p className="text-xs text-primary-500">
         既定の場所: <code className="px-1 bg-primary-100 rounded">$HOME/.claude/tmp/autolog/events.jsonl</code>
       </p>
+
+      {/* 前回のソース情報 */}
+      {saved && (
+        <div className="p-3 bg-primary-50 rounded-lg text-xs space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-primary-500">前回:</span>
+            <span className="font-mono text-primary-700">{saved.fileName}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-primary-500">最終読込:</span>
+            <span className="text-primary-700">{formatRelativeTime(saved.lastReadAt)}</span>
+          </div>
+        </div>
+      )}
+
+      {/* 再読込ボタン（前回 handle が残っている時のみ） */}
+      {saved?.fileHandle && (
+        <Button
+          onClick={() => onReadSaved(saved.fileHandle!)}
+          className="w-full"
+          size="lg"
+          variant="primary"
+        >
+          <RefreshCw size={18} className="mr-2 inline" />
+          前回のファイルから再読込
+        </Button>
+      )}
+
+      {/* 新規ピック */}
       <input
         ref={fileInputRef}
         type="file"
@@ -136,21 +254,42 @@ function FileView({
         onChange={(e) => {
           const file = e.target.files?.[0];
           if (file) onFile(file);
-          // 同じファイルの再選択を許可するため value をリセット
           e.target.value = '';
         }}
       />
-      <Button onClick={() => fileInputRef.current?.click()} className="w-full" size="lg">
+      <Button
+        onClick={() => (fsSupported ? onPickWithFsApi() : fileInputRef.current?.click())}
+        className="w-full"
+        size="lg"
+        variant={saved?.fileHandle ? 'secondary' : 'primary'}
+      >
         <Upload size={18} className="mr-2 inline" />
-        events.jsonl を選択
+        {saved?.fileHandle ? '別のファイルを選ぶ' : 'events.jsonl を選択'}
       </Button>
+
+      {!fsSupported && (
+        <p className="text-xs text-primary-400">
+          このブラウザは File System Access API 非対応のため、毎回ファイル選択が必要です（Chrome / Edge を推奨）。
+        </p>
+      )}
     </div>
   );
 }
 
+function formatRelativeTime(date: Date): string {
+  const ms = Date.now() - new Date(date).getTime();
+  const min = Math.floor(ms / 60000);
+  if (min < 1) return 'たった今';
+  if (min < 60) return `${min} 分前`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `${h} 時間前`;
+  const d = Math.floor(h / 24);
+  return `${d} 日前`;
+}
+
 function ListView({
   drafts,
-  completedKeys,
+  importedKeys,
   since,
   until,
   onChangeSince,
@@ -158,9 +297,12 @@ function ListView({
   onEdit,
   onReset,
   remainingCount,
+  importedCount,
+  showImported,
+  onToggleShowImported,
 }: {
   drafts: DraftTask[];
-  completedKeys: Set<string>;
+  importedKeys: Set<string>;
   since: string;
   until: string;
   onChangeSince: (s: string) => void;
@@ -168,12 +310,15 @@ function ListView({
   onEdit: (key: string) => void;
   onReset: () => void;
   remainingCount: number;
+  importedCount: number;
+  showImported: boolean;
+  onToggleShowImported: () => void;
 }) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-2 text-sm">
         <label className="flex flex-col gap-1">
-          <span className="text-primary-500 text-xs">since (UTC)</span>
+          <span className="text-primary-500 text-xs">since (JST)</span>
           <input
             type="date"
             value={since}
@@ -182,7 +327,7 @@ function ListView({
           />
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-primary-500 text-xs">until (UTC)</span>
+          <span className="text-primary-500 text-xs">until (JST)</span>
           <input
             type="date"
             value={until}
@@ -194,30 +339,48 @@ function ListView({
 
       <div className="flex items-center justify-between text-sm">
         <span className="text-primary-600">
-          下書き <strong>{drafts.length}</strong> 件 / 残り <strong>{remainingCount}</strong> 件
+          残り <strong>{remainingCount}</strong> 件
+          {importedCount > 0 && (
+            <span className="text-primary-400 ml-1">／ 取り込み済 {importedCount} 件</span>
+          )}
         </span>
-        <button
-          type="button"
-          onClick={onReset}
-          className="text-xs text-primary-500 hover:text-primary-800 underline"
-        >
-          別のファイルを選ぶ
-        </button>
+        <div className="flex items-center gap-3">
+          {importedCount > 0 && (
+            <button
+              type="button"
+              onClick={onToggleShowImported}
+              className="text-xs text-primary-500 hover:text-primary-800 flex items-center gap-1"
+              title="取り込み済みの再表示は通常不要。確認用"
+            >
+              {showImported ? <EyeOff size={12} /> : <Eye size={12} />}
+              {showImported ? '取り込み済みを隠す' : '取り込み済みも表示'}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onReset}
+            className="text-xs text-primary-500 hover:text-primary-800 underline"
+          >
+            別のファイルを選ぶ
+          </button>
+        </div>
       </div>
 
       {drafts.length === 0 ? (
         <div className="text-sm text-primary-500 text-center py-8">
-          該当期間に下書き化できるイベントが見つかりませんでした。
+          {remainingCount === 0 && importedCount > 0
+            ? '該当期間の下書きはすべて取り込み済みです 🎉'
+            : '該当期間に下書き化できるイベントが見つかりませんでした。'}
         </div>
       ) : (
         <div className="space-y-2">
           {drafts.map((d) => {
-            const done = completedKeys.has(d.draftKey);
+            const done = importedKeys.has(d.draftKey);
             return (
               <button
                 key={d.draftKey}
                 type="button"
-                onClick={() => onEdit(d.draftKey)}
+                onClick={() => !done && onEdit(d.draftKey)}
                 disabled={done}
                 className={`w-full text-left p-3 rounded-lg border transition-colors ${
                   done
@@ -263,7 +426,7 @@ function EditView({
 }: {
   draft: DraftTask;
   onBack: () => void;
-  onSaved: () => void;
+  onSaved: (taskId: string) => void;
 }) {
   return (
     <div className="space-y-3">
@@ -279,7 +442,8 @@ function EditView({
   );
 }
 
-/** 今日の日付（UTC、YYYY-MM-DD） */
+/** 今日の日付（JST、YYYY-MM-DD）— aggregateToDrafts が JST 解釈なので合わせる */
 function today(): string {
-  return new Date().toISOString().slice(0, 10);
+  const jstMs = Date.now() + 9 * 60 * 60 * 1000;
+  return new Date(jstMs).toISOString().slice(0, 10);
 }
