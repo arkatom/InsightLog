@@ -266,9 +266,24 @@ function buildDraft(b: {
   }
   let durationMs = 0;
   let costUsd = 0;
+  let hasDuration = false;
   for (const p of lastBySession.values()) {
-    if (typeof p.duration_ms === 'number') durationMs += p.duration_ms;
+    if (typeof p.duration_ms === 'number') {
+      durationMs += p.duration_ms;
+      hasDuration = true;
+    }
     if (typeof p.cost_usd === 'number') costUsd += p.cost_usd;
+  }
+
+  // duration_ms が一切取れていない場合のフォールバック:
+  // バケット内の最初と最後のイベントの ts 差分を上限値として採用する
+  // （Stop hook の入力に duration が含まれないバージョン / 旧データ向け）
+  if (!hasDuration) {
+    const first = Date.parse(b.firstTs);
+    const last = Date.parse(b.lastTs);
+    if (!Number.isNaN(first) && !Number.isNaN(last) && last > first) {
+      durationMs = last - first;
+    }
   }
 
   // subject 群を時系列でユニーク化

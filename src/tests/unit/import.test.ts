@@ -201,6 +201,31 @@ describe('aggregateToDrafts — groupBy: branch (日付を無視)', () => {
   });
 });
 
+describe('aggregateToDrafts — duration fallback', () => {
+  it('全 session_progress に duration_ms が無い時、firstTs〜lastTs の経過時間で代用する', () => {
+    // hook 入力に duration が含まれない実環境の挙動を模擬: progress イベントの duration_ms 抜き
+    const lines = [
+      '{"ts":"2026-05-18T10:00:00.000Z","type":"session_start","session_id":"sX","repo":"/work/x","branch":"main"}',
+      '{"ts":"2026-05-18T10:30:00.000Z","type":"git_commit","session_id":"sX","repo":"/work/x","branch":"main","commit":"c1","subject":"feat: x"}',
+      '{"ts":"2026-05-18T12:00:00.000Z","type":"session_progress","session_id":"sX","repo":"/work/x","branch":"main"}', // duration_ms 無し
+    ].join('\n');
+    const drafts = aggregateToDrafts(parseEventsJsonl(lines));
+    expect(drafts).toHaveLength(1);
+    // firstTs=10:00, lastTs=12:00 → 120分
+    expect(drafts[0].duration).toBe(120);
+  });
+
+  it('一部のセッションだけ duration_ms があるなら fallback せず合算', () => {
+    const lines = [
+      '{"ts":"2026-05-18T10:00:00.000Z","type":"git_commit","session_id":"sA","repo":"/work/x","branch":"main","commit":"c1","subject":"feat"}',
+      '{"ts":"2026-05-18T11:00:00.000Z","type":"session_progress","session_id":"sA","repo":"/work/x","branch":"main","duration_ms":600000}', // 10min
+    ].join('\n');
+    const drafts = aggregateToDrafts(parseEventsJsonl(lines));
+    // hasDuration が true なので fallback は使わない: 600000ms = 10min
+    expect(drafts[0].duration).toBe(10);
+  });
+});
+
 describe('aggregateToDrafts — gapHours オプション', () => {
   it('gap = 0.5h なら Day1 insightlog 内の 10:30→ なし、Day2 09:00→9:45 は同一バケット内', () => {
     // gapHours 適用は同一バケット内（branch-day）でも更に分割される
