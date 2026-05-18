@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { parseEventsJsonl, aggregateToDrafts, repoNameOf, tsToJstDate } from '@/lib/import';
+import {
+  parseEventsJsonl,
+  aggregateToDrafts,
+  repoNameOf,
+  tsToJstDate,
+  eventsByDraftKey,
+} from '@/lib/import';
 
 // テストデータ: 全 ts は ISO 8601 UTC。JST 換算で確認しやすい時刻を選んでいる。
 // 注意: 2026-05-18T10:00Z = 2026-05-18 19:00 JST → JST 日付 2026-05-18
@@ -270,6 +276,59 @@ describe('aggregateToDrafts — duration fallback', () => {
     const drafts = aggregateToDrafts(parseEventsJsonl(lines));
     // hasDuration が true なので fallback は使わない: 600000ms = 10min
     expect(drafts[0].duration).toBe(10);
+  });
+});
+
+describe('eventsByDraftKey', () => {
+  it('各イベントを所属 draft の draftKey にマップする', () => {
+    const events = parseEventsJsonl(sampleJsonl);
+    const drafts = aggregateToDrafts(events);
+    const map = eventsByDraftKey(events);
+    // sampleJsonl は 3 つの draft を作る (insightlog/feat/x Day1, other/feat/y Day1, insightlog/feat/x Day2)
+    // chore/nothing は commit 無しで除外。git_push/git_checkout は無いので、それ以外のイベントは全部 map に入る
+    const draftKeys = new Set(drafts.map((d) => d.draftKey));
+    for (const [, k] of map) {
+      expect(draftKeys.has(k)).toBe(true);
+    }
+    // chore/nothing 関連 (session_start s4 / session_progress s4) は map に入らない
+    const s4Events = events.filter((e) => e.session_id === 's4');
+    for (const e of s4Events) {
+      expect(map.has(e)).toBe(false);
+    }
+  });
+
+  it('repo/branch/jstDate と ts 範囲が一致するときのみマップされる', () => {
+    const events = parseEventsJsonl(sampleJsonl);
+    const drafts = aggregateToDrafts(events);
+    const day1Insightlog = drafts.find(
+      (d) => d.meta.repoName === 'insightlog' && d.meta.jstDate === '2026-05-18'
+    )!;
+    const day2Insightlog = drafts.find(
+      (d) => d.meta.repoName === 'insightlog' && d.meta.jstDate === '2026-05-19'
+    )!;
+
+    const map = eventsByDraftKey(events);
+
+    // s1 系イベント (Day1) は day1Insightlog にマップ
+    const s1Commits = events.filter((e) => e.session_id === 's1' && e.type === 'git_commit');
+    for (const e of s1Commits) {
+      expect(map.get(e)).toBe(day1Insightlog.draftKey);
+    }
+    // s3 系 (Day2) は day2Insightlog にマップ
+    const s3Commits = events.filter((e) => e.session_id === 's3' && e.type === 'git_commit');
+    for (const e of s3Commits) {
+      expect(map.get(e)).toBe(day2Insightlog.draftKey);
+    }
+  });
+
+  it('groupBy: branch の場合、複数日のイベントが 1 つの draftKey にまとまる', () => {
+    const events = parseEventsJsonl(sampleJsonl);
+    const map = eventsByDraftKey(events, { groupBy: 'branch' });
+    const insightlogCommits = events.filter(
+      (e) => e.repo === '/work/insightlog' && e.type === 'git_commit' && e.branch === 'feat/x'
+    );
+    const keys = new Set(insightlogCommits.map((e) => map.get(e)));
+    expect(keys.size).toBe(1); // 全部同じ draftKey
   });
 });
 

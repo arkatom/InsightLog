@@ -56,25 +56,34 @@ export async function getRememberedSource(): Promise<AutologSource | undefined> 
 }
 
 interface PermissionAwareHandle {
-  queryPermission?: (opts: { mode: 'read' }) => Promise<PermissionState>;
-  requestPermission?: (opts: { mode: 'read' }) => Promise<PermissionState>;
+  queryPermission?: (opts: { mode: 'read' | 'readwrite' }) => Promise<PermissionState>;
+  requestPermission?: (opts: { mode: 'read' | 'readwrite' }) => Promise<PermissionState>;
 }
 
-/** read 権限を確保する。granted なら true */
-export async function ensureReadPermission(
-  handle: FileSystemFileHandle
+/** 権限を確保する。granted なら true */
+async function ensurePermission(
+  handle: FileSystemFileHandle,
+  mode: 'read' | 'readwrite'
 ): Promise<boolean> {
   const h = handle as FileSystemFileHandle & PermissionAwareHandle;
   if (h.queryPermission) {
-    const cur = await h.queryPermission({ mode: 'read' });
+    const cur = await h.queryPermission({ mode });
     if (cur === 'granted') return true;
   }
   if (h.requestPermission) {
-    const next = await h.requestPermission({ mode: 'read' });
+    const next = await h.requestPermission({ mode });
     return next === 'granted';
   }
-  // 旧 API: getFile が走ればよしとする
+  // 旧 API: I/O が走ればよしとする
   return true;
+}
+
+export function ensureReadPermission(handle: FileSystemFileHandle): Promise<boolean> {
+  return ensurePermission(handle, 'read');
+}
+
+export function ensureWritePermission(handle: FileSystemFileHandle): Promise<boolean> {
+  return ensurePermission(handle, 'readwrite');
 }
 
 /** 記憶用に handle と filename を保存する */
@@ -94,4 +103,17 @@ export async function rememberSource(
 export async function readHandleAsText(handle: FileSystemFileHandle): Promise<string> {
   const file = await handle.getFile();
   return file.text();
+}
+
+/** handle に text を書き戻す（既存内容を完全置換） */
+export async function writeHandleText(
+  handle: FileSystemFileHandle,
+  text: string
+): Promise<void> {
+  const writable = await handle.createWritable();
+  try {
+    await writable.write(text);
+  } finally {
+    await writable.close();
+  }
 }

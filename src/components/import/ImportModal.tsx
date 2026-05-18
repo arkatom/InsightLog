@@ -10,9 +10,11 @@ import {
   pickJsonlFile,
   getRememberedSource,
   ensureReadPermission,
+  ensureWritePermission,
   rememberSource,
   readHandleAsText,
 } from '@/lib/fsAccess';
+import { purgeImportedFromJsonl } from '@/lib/autologMaintenance';
 import type { AutologSource } from '@/lib/db';
 import type { DraftTask, AutologEvent } from '@/types/import';
 import { toast } from 'sonner';
@@ -79,7 +81,7 @@ export function ImportModal({ isOpen, onClose }: ImportModalProps) {
     }
   };
 
-  /** File System Access API 経由でピック → handle を IndexedDB に保存 */
+  /** File System Access API 経由でピック → handle を IndexedDB に保存（読込 + 書込権限を一括取得） */
   const handlePickWithFsApi = async () => {
     try {
       const handle = await pickJsonlFile();
@@ -89,6 +91,9 @@ export function ImportModal({ isOpen, onClose }: ImportModalProps) {
         toast.error('読み込み権限が拒否されました');
         return;
       }
+      // 取り込み済みイベントを events.jsonl から削除するために書込権限も要求しておく
+      // 拒否されてもインポート自体は続行（削除機能だけ無効化）
+      await ensureWritePermission(handle);
       const text = await readHandleAsText(handle);
       if (ingestText(text, handle.name)) {
         await rememberSource(handle, handle.name);
@@ -107,6 +112,7 @@ export function ImportModal({ isOpen, onClose }: ImportModalProps) {
         toast.error('読み込み権限が拒否されました');
         return;
       }
+      await ensureWritePermission(handle);
       const text = await readHandleAsText(handle);
       if (ingestText(text, handle.name)) {
         await rememberSource(handle, handle.name);
@@ -114,6 +120,32 @@ export function ImportModal({ isOpen, onClose }: ImportModalProps) {
     } catch (err) {
       toast.error('前回のファイルの読み込みに失敗しました（消えた可能性があります）');
       console.error(err);
+    }
+  };
+
+  /** 取り込み成功時に events.jsonl から該当イベントを物理削除（FS API 経由、書込権限がある場合のみ） */
+  const tryPurgeFromJsonl = async (justImportedDraftKey: string) => {
+    if (!isFsAccessSupported()) return;
+    const source = await getRememberedSource();
+    if (!source?.fileHandle) return;
+    // 現時点の取り込み済み全体 + 今回追加分（useLiveQuery が再評価される前なので明示追加）
+    const allImported = new Set([...importedKeys, justImportedDraftKey]);
+    try {
+      const result = await purgeImportedFromJsonl(source.fileHandle, allImported, {
+        aggregateOpts: { since: since || undefined, until: until || undefined },
+      });
+      if (result.removedCount > 0) {
+        toast.success(
+          `events.jsonl から ${result.removedCount} 件のイベントを削除しました`
+        );
+        // 同じファイルから再集計し直すために events を更新
+        const fresh = await readHandleAsText(source.fileHandle);
+        const parsedFresh = parseEventsJsonl(fresh);
+        setEvents(parsedFresh);
+      }
+    } catch (err) {
+      // write permission denied 等は静かに諦める（IndexedDB seen-set のフォールバックで継続）
+      console.warn('events.jsonl の削減はスキップされました', err);
     }
   };
 
@@ -131,6 +163,8 @@ export function ImportModal({ isOpen, onClose }: ImportModalProps) {
         // 記録失敗は致命的ではないので toast で警告するだけ
         toast.error('取り込み記録の保存に失敗しました（タスク自体は保存済み）');
       }
+      // events.jsonl からも該当イベントを物理削除（FS API 書込権限がある場合のみ）
+      await tryPurgeFromJsonl(editingDraft.draftKey);
     }
     setEditingKey(null);
     setView('list');

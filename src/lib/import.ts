@@ -387,6 +387,42 @@ function buildDraft(b: {
  * コミット subject 先頭のプレフィックスからカテゴリを推測。
  * 推測できなければ空配列。
  */
+/**
+ * 各イベントがどの DraftTask に属するかを判定して Map で返す。
+ * 属する draft が無いイベント（フィルタ外、commit 0 件バケット等）は含まれない。
+ *
+ * 取り込み済み draftKey のイベントを events.jsonl から物理削除する用途で使う。
+ */
+export function eventsByDraftKey(
+  events: AutologEvent[],
+  opts: AggregateOptions = {}
+): Map<AutologEvent, string> {
+  const drafts = aggregateToDrafts(events, opts);
+  const result = new Map<AutologEvent, string>();
+  for (const e of events) {
+    for (const d of drafts) {
+      if (eventMatchesDraft(e, d)) {
+        result.set(e, d.draftKey);
+        break;
+      }
+    }
+  }
+  return result;
+}
+
+function eventMatchesDraft(e: AutologEvent, d: DraftTask): boolean {
+  const repoKey = e.repo ?? '(unknown-repo)';
+  const draftRepoKey = d.meta.repo ?? '(unknown-repo)';
+  if (repoKey !== draftRepoKey) return false;
+  const branchKey = e.branch ?? '(detached)';
+  const draftBranchKey = d.meta.branch ?? '(detached)';
+  if (branchKey !== draftBranchKey) return false;
+  if (d.meta.jstDate && tsToJstDate(e.ts) !== d.meta.jstDate) return false;
+  if (e.ts < d.meta.firstTs) return false;
+  if (e.ts > d.meta.lastTs) return false;
+  return true;
+}
+
 function guessCategory(subjects: string[]): string[] {
   const PREFIX_MAP: Record<string, string> = {
     feat: '機能開発',
