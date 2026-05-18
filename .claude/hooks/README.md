@@ -9,6 +9,7 @@ Claude Code の hooks を「タイムカード」として使い、作業イベ�
 - **失敗してもツール実行をブロックしない**。フックスクリプトは常に `exit 0`。
 - **プロジェクト内 `.claude/settings.json` で配線**。ユーザー設定 (`~/.claude/settings.json`) は触らない。
 - **イベントには必ず `repo`（git toplevel）と `repo_remote`（origin URL）を載せる**。横断集計の主キー。
+- **クロスプラットフォーム**: 日付/時刻計算は GNU date 依存ではなく **jq の `now` / `fromdateiso8601` / `gmtime`** で統一実装。macOS (BSD date) でも同じ精度で動く。Windows はネイティブ shell では走らないが、WSL / Git Bash 内なら動く。
 
 ## 出力先の解決順
 

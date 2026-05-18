@@ -20,9 +20,17 @@ autolog_dir() {
   echo "$base/.claude/tmp/autolog"
 }
 
-# ISO 8601 UTC、ミリ秒精度（取れなければ秒精度）
+# ISO 8601 UTC、ミリ秒精度。
+# 注意: GNU date の `%3N` は macOS の BSD date で literal `%3N` になってしまうため、
+# プラットフォーム非依存のために jq で生成する。
 autolog_ts() {
-  date -u +"%Y-%m-%dT%H:%M:%S.%3NZ" 2>/dev/null || date -u +"%Y-%m-%dT%H:%M:%SZ"
+  jq -nr '
+    now as $t |
+    ($t | floor) as $sec |
+    (($t - $sec) * 1000 | floor) as $ms |
+    ($sec | gmtime | strftime("%Y-%m-%dT%H:%M:%S")) as $base |
+    $base + (if $ms < 10 then ".00\($ms)" elif $ms < 100 then ".0\($ms)" else ".\($ms)" end) + "Z"
+  '
 }
 
 # 必要ディレクトリを作る
@@ -85,16 +93,26 @@ autolog_repo_remote() {
   git --no-optional-locks remote get-url "$first_remote" 2>/dev/null || true
 }
 
-# epoch ミリ秒（GNU date 想定。失敗時は空）
+# 現在時刻 → epoch ms。jq の now を使うのでプラットフォーム非依存。
 autolog_epoch_ms() {
-  date -u +%s%3N 2>/dev/null || true
+  jq -nr 'now * 1000 | floor' 2>/dev/null || true
 }
 
-# ISO 8601 文字列 → epoch ms（GNU date のみ）
+# ISO 8601 文字列 → epoch ms。
+# jq の fromdateiso8601 は秒精度のみ対応のため、小数秒を別途取り出して加算する。
 autolog_iso_to_epoch_ms() {
   local iso="$1"
   [ -z "$iso" ] && return 0
-  date -u -d "$iso" +%s%3N 2>/dev/null || true
+  jq -nr --arg ts "$iso" '
+    # 小数秒（.123Z 等）を捕捉
+    ($ts | capture("\\.(?<f>[0-9]+)Z$") // {f: "0"}) as $frac |
+    # 小数秒を取り除いた整数秒部
+    ($ts | sub("\\.[0-9]+Z$"; "Z")) as $clean |
+    ($clean | fromdateiso8601 * 1000) as $base |
+    # frac を 3 桁に正規化 ("812" → 812ms, "5" → 500ms, "12" → 120ms, "1234" → 123ms)
+    (($frac.f + "000")[0:3] | tonumber) as $ms |
+    $base + $ms
+  ' 2>/dev/null || true
 }
 
 # 指定ディレクトリにいる体で git 情報を読みたいとき、安全に cd する
