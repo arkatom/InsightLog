@@ -14,8 +14,14 @@ cwd=$(echo "$INPUT" | jq -r '.cwd // ""')
 source_kind=$(echo "$INPUT" | jq -r '.source // ""')
 
 ts=$(autolog_ts)
+
+# 入力 cwd に移ってから git 情報を取る（multi-repo セッションで重要）
+autolog_enter_cwd "$cwd"
+
 branch=$(autolog_branch)
 head=$(autolog_head_sha)
+repo=$(autolog_repo_root)
+remote=$(autolog_repo_remote)
 
 autolog_init
 
@@ -31,7 +37,11 @@ event=$(jq -nc \
   --arg branch "$branch" \
   --arg head "$head" \
   --arg source "$source_kind" \
+  --arg repo "$repo" \
+  --arg remote "$remote" \
   '{ts:$ts, type:"session_start", session_id:$sid, cwd:$cwd}
+   + (if $repo != "" then {repo:$repo} else {} end)
+   + (if $remote != "" then {repo_remote:$remote} else {} end)
    + (if $branch != "" then {branch:$branch} else {} end)
    + (if $head != "" then {head_sha:$head} else {} end)
    + (if $source != "" then {source:$source} else {} end)')

@@ -24,7 +24,23 @@ subcmd=$(printf '%s' "$cmd" | grep -oE 'git +(commit|push|checkout|switch)\b' | 
 session_id=$(echo "$INPUT" | jq -r '.session_id // ""')
 cwd=$(echo "$INPUT" | jq -r '.cwd // ""')
 ts=$(autolog_ts)
+
+# 入力 cwd に移ってから git 情報を取る（cd /other && git commit のような複合コマンド対策）
+autolog_enter_cwd "$cwd"
+
 branch=$(autolog_branch)
+repo=$(autolog_repo_root)
+remote=$(autolog_repo_remote)
+
+# 共通フィールド (repo / repo_remote) を含む基底オブジェクトを作る
+common_args=(
+  --arg ts "$ts" --arg sid "$session_id" --arg cwd "$cwd"
+  --arg repo "$repo" --arg remote "$remote" --arg branch "$branch"
+)
+common_expr='{ts:$ts, session_id:$sid, cwd:$cwd}
+  + (if $repo != "" then {repo:$repo} else {} end)
+  + (if $remote != "" then {repo_remote:$remote} else {} end)
+  + (if $branch != "" then {branch:$branch} else {} end)'
 
 case "$subcmd" in
   commit)
@@ -32,20 +48,18 @@ case "$subcmd" in
     subject=$(git --no-optional-locks log -1 --pretty=%s 2>/dev/null || true)
     files=$(git --no-optional-locks diff-tree --no-commit-id --name-only -r HEAD 2>/dev/null | wc -l | tr -d ' ' || echo "")
     event=$(jq -nc \
-      --arg ts "$ts" --arg sid "$session_id" --arg cwd "$cwd" \
-      --arg branch "$branch" --arg commit "$commit_sha" --arg subject "$subject" --arg files "$files" \
-      '{ts:$ts, type:"git_commit", session_id:$sid, cwd:$cwd}
-       + (if $branch != "" then {branch:$branch} else {} end)
-       + (if $commit != "" then {commit:$commit} else {} end)
-       + (if $subject != "" then {subject:$subject} else {} end)
-       + (if ($files != "" and $files != "0") then {files:($files|tonumber)} else {} end)')
+      "${common_args[@]}" \
+      --arg commit "$commit_sha" --arg subject "$subject" --arg files "$files" \
+      "${common_expr} + {type:\"git_commit\"}
+       + (if \$commit != \"\" then {commit:\$commit} else {} end)
+       + (if \$subject != \"\" then {subject:\$subject} else {} end)
+       + (if (\$files != \"\" and \$files != \"0\") then {files:(\$files|tonumber)} else {} end)")
     ;;
   push)
     event=$(jq -nc \
-      --arg ts "$ts" --arg sid "$session_id" --arg cwd "$cwd" \
-      --arg branch "$branch" --arg cmd "$cmd" \
-      '{ts:$ts, type:"git_push", session_id:$sid, cwd:$cwd, command:$cmd}
-       + (if $branch != "" then {branch:$branch} else {} end)')
+      "${common_args[@]}" \
+      --arg cmd "$cmd" \
+      "${common_expr} + {type:\"git_push\", command:\$cmd}")
     ;;
   checkout|switch)
     # reflog の最新エントリから from_branch を抽出
@@ -53,11 +67,10 @@ case "$subcmd" in
     from_branch=$(git --no-optional-locks reflog -1 --format='%gs' 2>/dev/null \
       | sed -nE 's/.*moving from ([^ ]+) to .*/\1/p' || true)
     event=$(jq -nc \
-      --arg ts "$ts" --arg sid "$session_id" --arg cwd "$cwd" \
-      --arg to_branch "$branch" --arg from_branch "$from_branch" --arg cmd "$cmd" \
-      '{ts:$ts, type:"git_checkout", session_id:$sid, cwd:$cwd, command:$cmd}
-       + (if $to_branch != "" then {to_branch:$to_branch} else {} end)
-       + (if $from_branch != "" then {from_branch:$from_branch} else {} end)')
+      "${common_args[@]}" \
+      --arg from_branch "$from_branch" --arg cmd "$cmd" \
+      "${common_expr} + {type:\"git_checkout\", command:\$cmd, to_branch:\$branch}
+       + (if \$from_branch != \"\" then {from_branch:\$from_branch} else {} end)")
     ;;
 esac
 

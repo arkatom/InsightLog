@@ -11,6 +11,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 INPUT=$(cat)
 
 session_id=$(echo "$INPUT" | jq -r '.session_id // ""')
+cwd=$(echo "$INPUT" | jq -r '.cwd // ""')
 duration_ms=$(echo "$INPUT" | jq -r '.cost.total_duration_ms // ""')
 cost_usd=$(echo "$INPUT" | jq -r '.cost.total_cost_usd // ""')
 lines_added=$(echo "$INPUT" | jq -r '.cost.total_lines_added // ""')
@@ -31,6 +32,10 @@ if [ -z "$duration_ms" ] && [ -n "$session_id" ]; then
   fi
 fi
 
+autolog_enter_cwd "$cwd"
+repo=$(autolog_repo_root)
+branch=$(autolog_branch)
+
 event=$(jq -nc \
   --arg ts "$ts" \
   --arg sid "$session_id" \
@@ -38,7 +43,11 @@ event=$(jq -nc \
   --arg cost "$cost_usd" \
   --arg la "$lines_added" \
   --arg lr "$lines_removed" \
+  --arg repo "$repo" \
+  --arg branch "$branch" \
   '{ts:$ts, type:"session_progress", session_id:$sid}
+   + (if $repo != "" then {repo:$repo} else {} end)
+   + (if $branch != "" then {branch:$branch} else {} end)
    + (if $dur != "" then {duration_ms:($dur|tonumber)} else {} end)
    + (if $cost != "" then {cost_usd:($cost|tonumber)} else {} end)
    + (if $la != "" then {lines_added:($la|tonumber)} else {} end)
