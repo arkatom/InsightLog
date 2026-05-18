@@ -22,9 +22,10 @@ Claude Code の hooks を「タイムカード」として使い、作業イベ�
 
 ```
 .claude/hooks/
-  autolog-common.sh         # 共通: 出力先解決・タイムスタンプ・JSONL 追記・git 情報取得
+  autolog-common.sh         # 共通: 出力先解決・タイムスタンプ・JSONL 追記・git 情報・transcript 集計
   autolog-session-start.sh  # SessionStart 用
-  autolog-stop.sh           # Stop 用（毎ターン累積メトリクス）
+  autolog-stop.sh           # Stop 用（毎ターン、transcript ベースの累積メトリクス）
+  autolog-session-end.sh    # SessionEnd 用（end_reason 付き最終スナップショット）
   autolog-posttool.sh       # PostToolUse(Bash) 用、git 系コマンドを検出
   autolog-daily-report.sh   # 日次サマリーを Markdown で標準出力
   README.md                 # 本ファイル
@@ -32,7 +33,7 @@ Claude Code の hooks を「タイムカード」として使い、作業イベ�
 $HOME/.claude/tmp/autolog/      # 既定の出力先（または INSIGHTLOG_AUTOLOG_DIR）
   events.jsonl                  # メインのイベントログ（全リポ集約・追記専用）
   sessions/
-    <session_id>.start          # 開始 ts 保存。Stop hook の duration fallback に使う
+    <session_id>.start          # 開始 ts 保存。transcript が読めない時の duration fallback
 ```
 
 ## イベントスキーマ
@@ -67,15 +68,34 @@ git リポでないディレクトリで実行された場合は `repo` / `branc
 
 Claude Code の `Stop` フックは **毎ターン終了時に発火する**（セッション終了時だけではない）。なので各行は「そのターン終了時点の累積値スナップショット」として読む。インポート時はセッション内の最終行を「セッション終了時の値」として扱う。
 
+Stop hook 入力には `duration` / `cost` フィールドが含まれないため、`transcript_path` で渡されるセッショントランスクリプトを jq で集計して取得する（`autolog_metrics_from_transcript`）。
+
 ```json
-{"ts":"...","type":"session_progress","session_id":"...","repo":"...","branch":"...","duration_ms":3899333,"cost_usd":1.234,"lines_added":120,"lines_removed":35}
+{"ts":"...","type":"session_progress","session_id":"...","repo":"...","branch":"...","duration_ms":22732315,"turn_count":390,"input_tokens":605,"output_tokens":482252,"cache_read_input_tokens":62459268,"cache_creation_input_tokens":1690357}
 ```
 
 | 追加 field | 由来 | 備考 |
 |---|---|---|
-| `duration_ms` | `.cost.total_duration_ms`、無ければ `session_start.ts` との差分で算出 | 累積 |
-| `cost_usd` | `.cost.total_cost_usd` | 累積。取れない環境では省略 |
-| `lines_added` / `lines_removed` | `.cost.total_lines_*` | 累積。取れない環境では省略 |
+| `duration_ms` | transcript の最初〜最後のタイムスタンプ差分。なければ `session_start.ts` との差分にフォールバック | 累積 |
+| `turn_count` | transcript 内の `type:"assistant"` 行数 | ≒ ターン数 |
+| `input_tokens` | `message.usage.input_tokens` 合算 | 累積（キャッシュ抜きの新規入力） |
+| `output_tokens` | `message.usage.output_tokens` 合算 | 累積 |
+| `cache_read_input_tokens` | 同 cache_read 合算 | 累積（安価なキャッシュヒット） |
+| `cache_creation_input_tokens` | 同 cache_creation 合算 | 累積 |
+
+### `session_end`
+
+`SessionEnd` フックでセッション終了時に一度だけ書かれる。終了理由 (`end_reason`) と最終累積値を持つ。フィールドは `session_progress` と同じに加えて：
+
+```json
+{"ts":"...","type":"session_end","session_id":"...","repo":"...","branch":"...","end_reason":"clear","duration_ms":...,"turn_count":...,...}
+```
+
+| 追加 field | 由来 | 備考 |
+|---|---|---|
+| `end_reason` | hook 入力 `.end_reason` | `clear` / `resume` / `logout` / `prompt_input_exit` 等 |
+
+`SessionEnd` は **発火が保証されない**（端末強制終了等で出ない場合がある）。そのため import 側は `session_progress` と `session_end` の両方を「セッション末値の候補」として扱い、各セッションの最新タイムスタンプ行を採用する。
 
 ### `git_commit`
 
@@ -117,6 +137,9 @@ push 完了は「完了候補」シグナルとして使う。実際の commit �
     ],
     "Stop": [
       { "hooks": [{ "type": "command", "command": "bash .claude/hooks/autolog-stop.sh" }] }
+    ],
+    "SessionEnd": [
+      { "hooks": [{ "type": "command", "command": "bash .claude/hooks/autolog-session-end.sh" }] }
     ],
     "PostToolUse": [
       { "matcher": "Bash", "hooks": [{ "type": "command", "command": "bash .claude/hooks/autolog-posttool.sh" }] }
@@ -175,13 +198,13 @@ tail -n 20 $EVENTS | jq -c '{ts, type, repo, branch}'
 # あるセッションの全イベント
 jq -c 'select(.session_id == "<id>")' $EVENTS
 
-# repo ごとの累計コスト（最終 session_progress を採用）
+# repo ごとの累計トークン（最終 progress/end を採用）
 jq -s '
-  map(select(.type=="session_progress"))
+  map(select(.type=="session_progress" or .type=="session_end"))
   | group_by(.session_id)
-  | map({repo: (.[0].repo // ""), cost: (last.cost_usd // 0)})
+  | map({repo: (.[0].repo // ""), out: (last.output_tokens // 0), dur: (last.duration_ms // 0)})
   | group_by(.repo)
-  | map({repo: .[0].repo, total: (map(.cost) | add)})
+  | map({repo: .[0].repo, total_output_tokens: (map(.out) | add), total_duration_ms: (map(.dur) | add)})
 ' $EVENTS
 
 # 今日触ったブランチ一覧（repo × branch）

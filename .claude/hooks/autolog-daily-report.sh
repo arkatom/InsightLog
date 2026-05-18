@@ -54,7 +54,7 @@ jq -s --arg since "$SINCE" --arg until "$UNTIL" '
       commits:     [.[] | select(.type == "git_commit")],
       pushes:      [.[] | select(.type == "git_push")],
       checkouts:   [.[] | select(.type == "git_checkout")],
-      progress:    [.[] | select(.type == "session_progress")],
+      progress:    [.[] | select(.type == "session_progress" or .type == "session_end")],
       # repo × branch ごとにコミット
       by_repo_branch: (
         [.[] | select(.type == "git_commit")]
@@ -66,18 +66,18 @@ jq -s --arg since "$SINCE" --arg until "$UNTIL" '
             count:   length
           })
       ),
-      # セッション末の累積メトリクス（各 session_id の最後の session_progress）
+      # セッション末の累積メトリクス（各 session_id の最後の session_progress / session_end）
       session_totals: (
-        [.[] | select(.type == "session_progress")]
+        [.[] | select(.type == "session_progress" or .type == "session_end")]
         | group_by(.session_id)
         | map({
             session_id: .[0].session_id,
             repo:       (.[0].repo // ""),
             branch:     (.[0].branch // ""),
             duration_ms:  (last.duration_ms  // 0),
-            cost_usd:     (last.cost_usd     // 0),
-            lines_added:  (last.lines_added  // 0),
-            lines_removed:(last.lines_removed// 0)
+            turn_count:   (last.turn_count   // 0),
+            output_tokens:(last.output_tokens// 0),
+            cost_usd:     (last.cost_usd     // 0)
           })
       )
     }
@@ -102,9 +102,9 @@ jq -s --arg since "$SINCE" --arg until "$UNTIL" '
   "",
   if (.session_totals|length) == 0 then "(なし)"
   else
-    "| session_id | repo | branch | duration | cost(USD) | +行/-行 |",
+    "| session_id | repo | branch | duration | turns | output tok |",
     "|---|---|---|---:|---:|---:|",
-    (.session_totals[] | "| \(.session_id[0:8]) | \(short_repo(.repo)) | \(.branch) | \(fmt_dur(.duration_ms)) | $\(.cost_usd) | +\(.lines_added)/-\(.lines_removed) |")
+    (.session_totals[] | "| \(.session_id[0:8]) | \(short_repo(.repo)) | \(.branch) | \(fmt_dur(.duration_ms)) | \(.turn_count) | \(.output_tokens) |")
   end,
   "",
   "## リポジトリ × ブランチ別コミット",

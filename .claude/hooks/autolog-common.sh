@@ -46,6 +46,31 @@ autolog_head_sha() {
   git --no-optional-locks rev-parse --short HEAD 2>/dev/null || true
 }
 
+# transcript ファイルからセッション累計メトリクスを JSON 1 行で出力。
+# 引数: $1 transcript_path
+# 出力フィールド: duration_ms / turn_count / input_tokens / output_tokens / cache_read_input_tokens / cache_creation_input_tokens
+# 取れないフィールドは省略。transcript 不在なら空文字を返す。
+autolog_metrics_from_transcript() {
+  local path="$1"
+  [ -n "$path" ] && [ -f "$path" ] || return 0
+
+  # 累計 usage と最初/最後のタイムスタンプを 1 パスで集計
+  jq -s '
+    def usages: [.[] | select(.message.usage != null) | .message.usage];
+    def tsmin: [.[].timestamp | select(. != null)] | sort | first // empty;
+    def tsmax: [.[].timestamp | select(. != null)] | sort | last // empty;
+    {
+      _first: tsmin,
+      _last: tsmax,
+      turn_count: ([.[] | select(.type == "assistant")] | length),
+      input_tokens: (usages | map(.input_tokens // 0) | add // 0),
+      output_tokens: (usages | map(.output_tokens // 0) | add // 0),
+      cache_read_input_tokens: (usages | map(.cache_read_input_tokens // 0) | add // 0),
+      cache_creation_input_tokens: (usages | map(.cache_creation_input_tokens // 0) | add // 0)
+    }
+  ' "$path" 2>/dev/null || true
+}
+
 # Git リポジトリのトップレベル絶対パス（リポでなければ空）
 autolog_repo_root() {
   git --no-optional-locks rev-parse --show-toplevel 2>/dev/null || true

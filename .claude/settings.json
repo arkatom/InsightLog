@@ -42,6 +42,16 @@
         ]
       }
     ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/autolog-session-end.sh"
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "mcp__playwright__browser_take_screenshot",
