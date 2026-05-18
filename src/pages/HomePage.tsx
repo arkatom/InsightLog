@@ -16,11 +16,13 @@ import { formatMinutes } from '@/lib/time';
 // モーダルを遅延ロード
 const StatsModal = lazy(() => import('@/components/statistics/StatsModal').then(m => ({ default: m.StatsModal })));
 const SettingsModal = lazy(() => import('@/components/settings/SettingsModal').then(m => ({ default: m.SettingsModal })));
+const ImportModal = lazy(() => import('@/components/import/ImportModal').then(m => ({ default: m.ImportModal })));
 
 export function HomePage() {
   const [showTaskList, setShowTaskList] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const { currentCycle, mode } = useTimer();
   const stats = useStatistics('today');
   const { settings } = useSettings();
@@ -32,7 +34,7 @@ export function HomePage() {
         onTaskListClick={() => setShowTaskList(true)}
         onStatsClick={() => setShowStats(true)}
         onSettingsClick={() => setShowSettings(true)}
-
+        onImportClick={() => setShowImport(true)}
       />
 
       {showTimer && (
@@ -84,7 +86,10 @@ export function HomePage() {
         {showSettings && <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} />}
       </Suspense>
 
-
+      {/* インポートモーダル（遅延ロード） */}
+      <Suspense fallback={null}>
+        {showImport && <ImportModal isOpen={showImport} onClose={() => setShowImport(false)} />}
+      </Suspense>
     </Container>
   );
 }
