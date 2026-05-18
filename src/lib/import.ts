@@ -46,12 +46,27 @@ function isAutologEvent(obj: unknown): obj is AutologEvent {
   ].includes(o.type);
 }
 
+const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
+
 /**
- * 期間フィルタの判定。境界は両端を含む（since 00:00:00 〜 until 23:59:59.999）。
+ * ISO 8601 UTC 文字列 → JST(UTC+9) の YYYY-MM-DD。
+ * パース不能なら空文字。
+ */
+export function tsToJstDate(ts: string): string {
+  const t = Date.parse(ts);
+  if (Number.isNaN(t)) return '';
+  return new Date(t + JST_OFFSET_MS).toISOString().slice(0, 10);
+}
+
+/**
+ * 期間フィルタ。since/until は JST 解釈の YYYY-MM-DD（両端含む）。
  */
 function inRange(ts: string, since?: string, until?: string): boolean {
-  if (since && ts < `${since}T00:00:00.000Z`) return false;
-  if (until && ts > `${until}T23:59:59.999Z`) return false;
+  if (!since && !until) return true;
+  const date = tsToJstDate(ts);
+  if (!date) return false;
+  if (since && date < since) return false;
+  if (until && date > until) return false;
   return true;
 }
 
@@ -65,21 +80,24 @@ export function repoNameOf(repo: string | undefined): string | undefined {
 }
 
 /**
- * events から「repo × branch」単位で下書きタスクを生成する。
+ * events から下書きタスクを生成する。
  *
- * グルーピング規則:
- *   - 同じ (repo, branch) に属する全イベントを 1 タスクの候補とする
+ * グルーピング規則（デフォルト `groupBy: 'branch-day'`）:
+ *   - 同じ (repo, branch, JST 日付) に属する全イベントを 1 タスク候補とする
  *   - repo か branch が無いイベントは "(unknown-repo)" / "(detached)" にフォールバック
- *   - duration_ms はそのセッション群の最新 session_progress を採用（複数セッションがあれば合算）
+ *   - duration_ms はセッションごとの最終 session_progress を合算
  *   - subject は時系列でユニーク化（同じメッセージの重複コミットは1回）
+ *   - gapHours 指定時はバケット内を更にイベント間ギャップで分割
  *
- * 制約:
- *   - 同じブランチで複数の論理タスクをこなした日は 1 つにまとまる（人間が分割編集する前提）
+ * グルーピング規則（`groupBy: 'branch'`）:
+ *   - JST 日付を無視。複数日に跨いだ同一ブランチ作業を 1 つにまとめる
  */
 export function aggregateToDrafts(
   events: AutologEvent[],
   opts: AggregateOptions = {}
 ): DraftTask[] {
+  const groupBy = opts.groupBy ?? 'branch-day';
+
   const filtered = events.filter((e) => {
     if (!inRange(e.ts, opts.since, opts.until)) return false;
     if (opts.repoFilter && opts.repoFilter.length > 0) {
@@ -91,6 +109,7 @@ export function aggregateToDrafts(
   type Bucket = {
     repo?: string;
     branch?: string;
+    jstDate?: string;
     sessionIds: Set<string>;
     commits: GitCommitEvent[];
     starts: SessionStartEvent[];
@@ -99,17 +118,23 @@ export function aggregateToDrafts(
     lastTs: string;
   };
 
+  const bucketKey = (e: AutologEvent): string => {
+    const repoKey = e.repo ?? '(unknown-repo)';
+    const branchKey = e.branch ?? '(detached)';
+    if (groupBy === 'branch') return `${repoKey}::${branchKey}`;
+    return `${repoKey}::${branchKey}::${tsToJstDate(e.ts)}`;
+  };
+
   const buckets = new Map<string, Bucket>();
-  const keyOf = (repo?: string, branch?: string) =>
-    `${repo ?? '(unknown-repo)'}::${branch ?? '(detached)'}`;
 
   for (const e of filtered) {
-    const k = keyOf(e.repo, e.branch);
+    const k = bucketKey(e);
     let b = buckets.get(k);
     if (!b) {
       b = {
         repo: e.repo,
         branch: e.branch,
+        jstDate: groupBy === 'branch-day' ? tsToJstDate(e.ts) : undefined,
         sessionIds: new Set(),
         commits: [],
         starts: [],
@@ -136,10 +161,20 @@ export function aggregateToDrafts(
     }
   }
 
+  // gapHours 指定時はバケット内をギャップで分割
+  const effectiveBuckets: Bucket[] = [];
+  for (const b of buckets.values()) {
+    if (opts.gapHours && opts.gapHours > 0) {
+      effectiveBuckets.push(...splitByGap(b, opts.gapHours));
+    } else {
+      effectiveBuckets.push(b);
+    }
+  }
+
   // commit が 0 件のバケットは「セッションは開いたが何もコミットしてない」状態。
   // タスク化する意味が薄いので除外。session のみ拾いたいユースケースが出たら緩める。
   const drafts: DraftTask[] = [];
-  for (const b of buckets.values()) {
+  for (const b of effectiveBuckets) {
     if (b.commits.length === 0) continue;
     drafts.push(buildDraft(b));
   }
@@ -149,9 +184,71 @@ export function aggregateToDrafts(
   return drafts;
 }
 
+type RawBucket = {
+  repo?: string;
+  branch?: string;
+  jstDate?: string;
+  sessionIds: Set<string>;
+  commits: GitCommitEvent[];
+  starts: SessionStartEvent[];
+  progress: SessionProgressEvent[];
+  firstTs: string;
+  lastTs: string;
+};
+
+/**
+ * バケット内のイベントを時系列で並べ、gapHours を超える隙間で分割する。
+ */
+function splitByGap(b: RawBucket, gapHours: number): RawBucket[] {
+  const gapMs = gapHours * 60 * 60 * 1000;
+  // 全イベントを時系列ソート
+  type AnyEvent =
+    | { kind: 'commit'; e: GitCommitEvent }
+    | { kind: 'start'; e: SessionStartEvent }
+    | { kind: 'progress'; e: SessionProgressEvent };
+  const all: AnyEvent[] = [
+    ...b.commits.map((e) => ({ kind: 'commit' as const, e })),
+    ...b.starts.map((e) => ({ kind: 'start' as const, e })),
+    ...b.progress.map((e) => ({ kind: 'progress' as const, e })),
+  ];
+  all.sort((x, y) => x.e.ts.localeCompare(y.e.ts));
+
+  if (all.length === 0) return [b];
+
+  const segments: RawBucket[] = [];
+  let cur: RawBucket | null = null;
+  let prevMs = 0;
+  for (const x of all) {
+    const ms = Date.parse(x.e.ts);
+    if (!cur || ms - prevMs > gapMs) {
+      cur = {
+        repo: b.repo,
+        branch: b.branch,
+        jstDate: b.jstDate,
+        sessionIds: new Set(),
+        commits: [],
+        starts: [],
+        progress: [],
+        firstTs: x.e.ts,
+        lastTs: x.e.ts,
+      };
+      segments.push(cur);
+    }
+    cur.sessionIds.add(x.e.session_id);
+    if (x.e.ts < cur.firstTs) cur.firstTs = x.e.ts;
+    if (x.e.ts > cur.lastTs) cur.lastTs = x.e.ts;
+    if (x.kind === 'commit') cur.commits.push(x.e);
+    else if (x.kind === 'start') cur.starts.push(x.e);
+    else cur.progress.push(x.e);
+    prevMs = ms;
+  }
+  return segments;
+}
+
 function buildDraft(b: {
   repo?: string;
   branch?: string;
+  jstDate?: string;
   sessionIds: Set<string>;
   commits: GitCommitEvent[];
   starts: SessionStartEvent[];
@@ -202,6 +299,7 @@ function buildDraft(b: {
   noteLines.push('## autolog メタ');
   noteLines.push(`- repo: ${repoName ?? '(unknown)'}`);
   if (b.branch) noteLines.push(`- branch: ${b.branch}`);
+  if (b.jstDate) noteLines.push(`- 日付 (JST): ${b.jstDate}`);
   noteLines.push(`- 期間: ${b.firstTs} 〜 ${b.lastTs}`);
   noteLines.push(`- セッション数: ${b.sessionIds.size}`);
   noteLines.push(`- コミット数: ${sortedCommits.length}`);
@@ -214,8 +312,14 @@ function buildDraft(b: {
 
   const durationMin = Math.max(1, Math.round(durationMs / 60000));
 
+  // draftKey: 取り込み済み判定に使うので決定論的に作る。
+  // - jstDate があればそれを含める（同じブランチでも別日なら別キー）
+  // - gap split 由来の分割では firstTs が違うので含める
+  const datePart = b.jstDate ?? 'no-date';
+  const draftKey = `${b.repo ?? 'unknown'}::${b.branch ?? 'detached'}::${datePart}::${b.firstTs}`;
+
   return {
-    draftKey: `${b.repo ?? 'unknown'}::${b.branch ?? 'detached'}::${b.firstTs}`,
+    draftKey,
     name,
     taskUrl: undefined,
     duration: durationMin,
@@ -226,6 +330,7 @@ function buildDraft(b: {
       repo: b.repo,
       repoName,
       branch: b.branch,
+      jstDate: b.jstDate,
       sessionIds: [...b.sessionIds],
       commitCount: sortedCommits.length,
       firstTs: b.firstTs,

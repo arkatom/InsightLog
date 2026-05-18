@@ -65,13 +65,15 @@ export type DraftTask = Pick<
   Task,
   'name' | 'taskUrl' | 'duration' | 'reworkCount' | 'category' | 'notes'
 > & {
-  /** 下書きを一意に識別するキー。インポート画面内の選択管理用。 */
+  /** 下書きを一意に識別するキー。インポート画面内の選択管理用 & 取り込み済み判定に使う。 */
   draftKey: string;
   /** インポート由来のメタ情報（UI 表示用、Task には保存しない） */
   meta: {
     repo?: string;
     repoName?: string;
     branch?: string;
+    /** JST 日付（YYYY-MM-DD）。groupBy: 'branch-day' の時に入る */
+    jstDate?: string;
     sessionIds: string[];
     commitCount: number;
     firstTs: string;
@@ -81,9 +83,20 @@ export type DraftTask = Pick<
 };
 
 export interface AggregateOptions {
-  /** 日付範囲フィルタ（ISO 8601 文字列、UTC）。未指定なら全件。 */
+  /** 日付範囲フィルタ（YYYY-MM-DD, JST 解釈）。未指定なら全件。 */
   since?: string;
   until?: string;
   /** repo を絞り込む。指定すると一致しないイベントは除外。 */
   repoFilter?: string[];
+  /**
+   * グルーピング方針。
+   * - `'branch-day'` (デフォルト): repo × branch × JST 日付ごとに 1 下書き。1日1回まとめる運用と相性が良い
+   * - `'branch'`: repo × branch だけでまとめる。複数日に跨ぐ連続作業を1つにしたい時
+   */
+  groupBy?: 'branch' | 'branch-day';
+  /**
+   * 同一バケット内で連続するイベント間のギャップが gapHours を超えたら別の下書きに分割する。
+   * 指定なしなら分割しない。例: 3 で「3 時間以上空いたら別タスク」
+   */
+  gapHours?: number;
 }
