@@ -2,8 +2,8 @@
 name: training
 description: >
   研修の実習・ハンズオン手順を Codespace 内で VS Code で開くスキル。
-  $ARGUMENTS に英語スラッグ（compare / coloring / simplify 等）または
-  日本語キーワード（配色 / マニュアル比較 / タスクフォーム 等）を指定すると、
+  $ARGUMENTS に英語スラッグ（compare / simplify / multi-layer-guard 等）または
+  日本語キーワード（3層防御 / タスクフォーム / ダッシュボード 等）を指定すると、
   docs/training/ から該当する Markdown ファイルを code コマンドで開く。
   引数なしで全件一覧を表示。
   使用場面: (1) 受講者が手順書を手元で開きたいとき、
@@ -51,10 +51,13 @@ description: >
   compare              CLAUDE.md の有無で比較
 
 【実習】
-  coloring             InsightLog の配色を変える
+  my-style             InsightLog を自分仕様にする
   simplify             タスク記録フォームを簡単にする
   required-annotation  必須フィールドの注釈表示
   observe-evolve       振り返りと改善サイクルを体験
+  observe-hook         commit 後に振り返りを促す仕組みを作る
+  multi-layer-guard    AI に「してはいけないこと」を設定する（3層防御）
+  kpi-dashboard        InsightLog の記録を経営層向け報告書に変換する
 
 使い方: /training <スラッグ or 日本語キーワード>
 ```
@@ -98,21 +101,26 @@ VS Code が既に開いていれば、新しいタブで該当ファイルが表
 ```
 # 完全一致
 /training compare              → docs/training/claudemd-compare.md を開く
-/training 配色                → docs/training/coloring.md を開く
 /training required-annotation  → docs/training/required-annotation.md を開く
 /training observe-evolve       → docs/training/observe-evolve.md を開く
+/training observe-hook         → docs/training/observe-hook.md を開く
+/training multi-layer-guard    → docs/training/multi-layer-guard.md を開く
+/training kpi-dashboard        → docs/training/kpi-dashboard.md を開く
 
 # 部分一致（唯一マッチ）
 /training task           → docs/training/task-form-simplify.md を開く
 /training 必須           → docs/training/required-annotation.md を開く
 /training 改善           → docs/training/observe-evolve.md を開く
+/training 3層            → docs/training/multi-layer-guard.md を開く
+/training ダッシュボード  → docs/training/kpi-dashboard.md を開く
 
 # 部分一致（複数）
 /training claude         → 候補を提示: claudemd-compare.md
 
 # 意味的マッチ
 /training クロードの比較    → 推測: claudemd-compare.md を開きますか？
-/training 色を変える       → 推測: coloring.md を開きますか？
+/training ブレーキ          → 推測: multi-layer-guard.md を開きますか？
+/training 報告書            → 推測: kpi-dashboard.md を開きますか？
 
 # 一覧
 /training                → 全件一覧

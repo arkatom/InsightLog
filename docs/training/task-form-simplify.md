@@ -108,13 +108,13 @@ InsightLog のタスク記録フォームに以下を入力：
 apps/InsightLog/src/components/task/TaskForm.tsx で、
 前回選択したカテゴリと AI ツール（どちらも複数選択チェックボックス）の
 セットを次回の初期値にしたい。
-保存場所は IndexedDB (Dexie) の settings テーブル。
-既存の useSettings() フックを使う。
+最後に記録したタスクの値を引き継ぐ方式で。
+useTasks() フックのタスク一覧（降順）が使える。
 ```
 
-- **改善点**: 対象ファイル（`TaskForm.tsx`）・UI 形式（複数選択チェックボックス）・動作（初期値保持）・データ層（Dexie の settings テーブル + 既存フック）が明示
+- **改善点**: 対象ファイル（`TaskForm.tsx`）・UI 形式（複数選択チェックボックス）・動作（前回値引き継ぎ）・使うフック（`useTasks()`）が明示
 - **AI の反応**: 質問なしで実装を始める。1 回の往復で動く版が出る
-- **残る曖昧**: 既存テストを壊すか、初回起動時の挙動、schema 変更の影響範囲が未定義
+- **残る曖昧**: 初回起動時の挙動・「一度だけ適用」の制御方法・既存テストへの影響が未定義
 
 ### Level 3 — さらに良い指示（品質保証 + 副次配慮を追加）
 
@@ -122,21 +122,23 @@ apps/InsightLog/src/components/task/TaskForm.tsx で、
 apps/InsightLog/src/components/task/TaskForm.tsx で、
 前回選択したカテゴリと AI ツール（どちらも複数選択チェックボックス）の
 セットを次回の初期値にしたい。
-保存場所は AppSettings (apps/InsightLog/src/types/settings.ts) に
-lastSelectedAITools: string[] と lastSelectedCategories: string[] を追加し、
-既存の useSettings().updateSettings() で部分更新する。
 
-制約:
-- 初回起動時（過去ログなし）は両方とも空配列（未選択状態）で表示すること
+実装方針:
+- useTasks().tasks（作成日時の降順ソート済み）の先頭 tasks[0] から
+  aiToolsUsed と category を読み取る
+- コンポーネント初回マウント時の 1 度だけ適用
+  （hasPreFilled: boolean フラグで「適用済み」を管理）
+- タスク記録が 0 件のとき（初回起動）は両方とも空配列（未選択状態）
+- フォーム送信後のリセットは既存の動作を維持
+  （hasPreFilled は true のまま保持 → 次回フォーム表示時に DB の最新値を自動適用）
 - 既存のユニットテスト（src/tests/unit/）を破壊しないこと
-- 新規ロジックに対するテストを 1 件以上追加（「保存後、useSettings().settings.lastSelectedAITools が更新される」）
-- Dexie schema 変更は追加のみ（既存ユーザーの tasks / settings データは保持）
-- 設計判断は apps/InsightLog/CLAUDE.md のアーキテクチャ判断セクションに従う
-- 動作確認: npm run dev でブラウザ確認、ページリロード後・ブラウザ再起動後に初期値が保持されているか
+- 設計判断は CLAUDE.md のアーキテクチャ判断セクションに従う
+- 動作確認: npm run dev でブラウザ確認 → タスクを 1 件記録 →
+  フォームリセット後に AI ツールとカテゴリが前回値で初期表示されるか確認
 ```
 
-- **改善点**: Acceptance Criteria 相当（6 項目の制約）・既存資産保護・設計参照先・動作確認手順を明記
-- **AI の反応**: 1 回で「動く・テスト付き・既存破壊なし・マイグレーションあり」の PR が出やすい
+- **改善点**: 実装方針（`tasks[0]` 参照・フラグ制御）・初回起動時の挙動・フォームリセット後の動作・設計参照先・動作確認手順を明記
+- **AI の反応**: 1 回で「動く・既存破壊なし・初回起動対応済み」の実装が出やすい
 - **残るリスク**: KPI（入力 30 秒 → 15 秒）と運用 KPI 接続の議論は完成形の Issue (`task-form-simplify.issue.md`) で扱われている
 
 ### この 3 段階を見て学ぶこと

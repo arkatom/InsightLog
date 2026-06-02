@@ -32,7 +32,7 @@ Claude Code に以下をコピペ:
 
 ```
 タスク記録フォームの AI ツール選択肢を、私が業務で使う AI ツールに合わせて編集してください。
-私が使うツール: Claude / GitHub Copilot / ChatGPT / Cursor / Notion AI
+私が使うツール: Claude / Copilot / ChatGPT / Gemini / その他AI
 ※ 「AI未使用」と「Claude」は必ず残してください (Claude の研修なので Claude 必須、計測のため AI未使用 必須)
 ```
 
