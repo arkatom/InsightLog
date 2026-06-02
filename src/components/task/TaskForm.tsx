@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import { secondsToMinutes } from '@/lib/time';
 
 export function TaskForm() {
-  const { addTask } = useTasks();
+  const { addTask, tasks } = useTasks();
   const { getTodaySessions } = useSessions();
   const { settings, updateSettings } = useSettings();
 
@@ -26,6 +26,16 @@ export function TaskForm() {
   const [customCategory, setCustomCategory] = useState('');
   const [showCustomCategoryInput, setShowCustomCategoryInput] = useState(false);
   const [notes, setNotes] = useState('');
+  const [hasPreFilled, setHasPreFilled] = useState(false);
+
+  // 前回タスクのAIツール・カテゴリを引き継ぎ（初回のみ）
+  useEffect(() => {
+    if (hasPreFilled || tasks.length === 0) return;
+    const lastTask = tasks[0];
+    if (lastTask.aiToolsUsed?.length > 0) setSelectedAITools(lastTask.aiToolsUsed);
+    if (lastTask.category?.length > 0) setSelectedCategories(lastTask.category);
+    setHasPreFilled(true);
+  }, [tasks, hasPreFilled]);
 
   // 全カテゴリ（固定 + カスタム）
   const allCategories = [...TASK_CATEGORIES, ...(settings.customCategories || [])];
@@ -187,12 +197,17 @@ export function TaskForm() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* タスク名 */}
-        <Input
-          type="text"
-          placeholder="タスク名を入力"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
+        <div>
+          <p className="text-sm text-primary-500 mb-2">
+            タスク名 <span className="text-red-500 text-xs font-normal">※必須</span>
+          </p>
+          <Input
+            type="text"
+            placeholder="タスク名を入力"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </div>
 
         {/* タスクURL */}
         <div className="flex items-center gap-2 px-4 py-3 bg-primary-50 rounded-lg focus-within:ring-2 focus-within:ring-accent-200 focus-within:bg-white transition-all">
@@ -209,7 +224,9 @@ export function TaskForm() {
         {/* AIツール利用状況 */}
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <p className="text-sm text-primary-500">AIツール利用状況</p>
+            <p className="text-sm text-primary-500">
+              AIツール利用状況 <span className="text-red-500 text-xs font-normal">※必須</span>
+            </p>
             {isAINotUsed && (
               <div className="group relative">
                 <Info size={14} className="text-primary-400 cursor-help" />
@@ -252,6 +269,10 @@ export function TaskForm() {
         </div>
 
         {/* 所要時間 + AI未利用時の所要時間 + 手戻り回数（横並び） */}
+        <div>
+          <p className="text-sm text-primary-500 mb-2">
+            所要時間 <span className="text-red-500 text-xs font-normal">※必須</span>
+          </p>
         <div className="grid grid-cols-3 gap-3">
           {/* 所要時間 */}
           <div className="flex items-center gap-2 px-3 py-3 bg-primary-50 rounded-lg focus-within:ring-2 focus-within:ring-accent-200 focus-within:bg-white transition-all">
@@ -295,10 +316,13 @@ export function TaskForm() {
             <span className="text-xs text-primary-400">回</span>
           </div>
         </div>
+        </div>
 
         {/* カテゴリ */}
         <div>
-          <p className="text-sm text-primary-500 mb-2">カテゴリ</p>
+          <p className="text-sm text-primary-500 mb-2">
+            カテゴリ <span className="text-red-500 text-xs font-normal">※必須</span>
+          </p>
           <div className="flex flex-wrap gap-2">
             {allCategories.map((cat) => (
               <div key={cat} className="flex items-center gap-0.5">
@@ -355,7 +379,7 @@ export function TaskForm() {
           <textarea
             placeholder="良かった・悪かったプロンプト、改善点、気付きなど"
             rows={3}
-            className="w-full px-4 py-3 bg-primary-50 rounded-lg border-0 focus:ring-2 focus:ring-accent-200 focus:bg-white text-sm resize-none transition-all"
+            className="w-full px-4 py-3 bg-primary-50 rounded-lg border-0 focus:ring-2 focus:ring-accent-200 focus:bg-white text-sm resize-y transition-all"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
           />
