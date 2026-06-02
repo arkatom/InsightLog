@@ -100,27 +100,27 @@ VS Code が既に開いていれば、新しいタブで該当ファイルが表
 
 ```
 # 完全一致
-/training compare              → docs/training/claudemd-compare.md を開く
-/training required-annotation  → docs/training/required-annotation.md を開く
-/training observe-evolve       → docs/training/observe-evolve.md を開く
-/training observe-hook         → docs/training/observe-hook.md を開く
-/training multi-layer-guard    → docs/training/multi-layer-guard.md を開く
-/training kpi-dashboard        → docs/training/kpi-dashboard.md を開く
+/training compare              → docs/training/part2-1-claudemd-compare.md を開く
+/training required-annotation  → docs/training/part3-1-required-annotation.md を開く
+/training observe-evolve       → docs/training/part4-1-observe-evolve.md を開く
+/training observe-hook         → docs/training/part6-1-observe-hook.md を開く
+/training multi-layer-guard    → docs/training/part7-1-multi-layer-guard.md を開く
+/training kpi-dashboard        → docs/training/part8-1-kpi-dashboard.md を開く
 
 # 部分一致（唯一マッチ）
-/training task           → docs/training/task-form-simplify.md を開く
-/training 必須           → docs/training/required-annotation.md を開く
-/training 改善           → docs/training/observe-evolve.md を開く
-/training 3層            → docs/training/multi-layer-guard.md を開く
-/training ダッシュボード  → docs/training/kpi-dashboard.md を開く
+/training task           → docs/training/part2-2-task-form-simplify.md を開く
+/training 必須           → docs/training/part3-1-required-annotation.md を開く
+/training 改善           → docs/training/part4-1-observe-evolve.md を開く
+/training 3層            → docs/training/part7-1-multi-layer-guard.md を開く
+/training ダッシュボード  → docs/training/part8-1-kpi-dashboard.md を開く
 
 # 部分一致（複数）
-/training claude         → 候補を提示: claudemd-compare.md
+/training claude         → 候補を提示: part2-1-claudemd-compare.md
 
 # 意味的マッチ
-/training クロードの比較    → 推測: claudemd-compare.md を開きますか？
-/training ブレーキ          → 推測: multi-layer-guard.md を開きますか？
-/training 報告書            → 推測: kpi-dashboard.md を開きますか？
+/training クロードの比較    → 推測: part2-1-claudemd-compare.md を開きますか？
+/training ブレーキ          → 推測: part7-1-multi-layer-guard.md を開きますか？
+/training 報告書            → 推測: part8-1-kpi-dashboard.md を開きますか？
 
 # 一覧
 /training                → 全件一覧
