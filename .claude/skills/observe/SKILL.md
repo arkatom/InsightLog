@@ -74,7 +74,7 @@ observe-prep.sh の `EARLY_EXIT_CHECK.verdict` を読む:
 
 ### 4. 振り返り記録
 
-[テンプレート](./references/reflection-template.md) に従い、`docs/memory/reflection/YYYYMMDD_{title}.md` を生成する。
+[テンプレート](./templates/reflection-template.md) に従い、`docs/memory/reflection/YYYYMMDD_{title}.md` を生成する。
 
 5 セクション必須: Handshake / 摩擦ポイント / 得られた知見 / 次回アクション / 刺さったフレーズ + Rubric Score セクション。
 
@@ -117,7 +117,7 @@ YYYY-MM-DD | N/10 | 手戻りN 指示N 前提N 検証N 片付けN | {セッシ�
 
 ### 8. 改善提案
 
-摩擦検出時は [テンプレート](./references/improvement-template.md) に従い `docs/memory/heartbeat/improvements.md` 末尾に **1 件だけ** 追記。
+摩擦検出時は [テンプレート](./templates/improvement-template.md) に従い `docs/memory/heartbeat/improvements.md` 末尾に **1 件だけ** 追記。
 
 複数検出時は **最もインパクトが大きい 1 件のみ**。Rubric が特定基準で 8.0/10 を下回っていれば、その基準関連を優先。
 
