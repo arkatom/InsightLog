@@ -224,7 +224,6 @@ cd /path/to/InsightLog
 | e2e-planner (Sub-Agent) | E2E 計画 (Markdown 出力) | `Read, Write, Edit, Glob, Grep` | `apps/InsightLog/.claude/agents/e2e-planner.md` |
 | e2e-runner (Sub-Agent) | E2E 実行 (MCP) | `Bash, Read, Write, mcp__playwright__*` | `apps/InsightLog/.claude/agents/e2e-runner.md` |
 | pr-creator (Sub-Agent) | 日本語 PR 作成 | `Bash, Read, Write` | `apps/InsightLog/.claude/agents/pr-creator.md` |
-| cc-feature-review (Sub-Agent) | Claude Code 機能調査 | `Read, Glob, Grep, WebSearch, WebFetch` | `apps/InsightLog/.claude/agents/cc-feature-review.md` |
 | planner-team (Skill) | 計画策定 (4 ロール: PM/Searcher/Architect/Devil) | (Skill 内で各 Agent を起動) | `apps/InsightLog/.claude/skills/planner-team/SKILL.md` |
 | reviewer-team (Skill) | レビュー (5 ロール: PM/quality/ux/test/Devil) | (Skill 内で各 Agent を起動) | `apps/InsightLog/.claude/skills/reviewer-team/SKILL.md` |
 

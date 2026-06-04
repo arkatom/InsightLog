@@ -280,6 +280,6 @@ Date:   2026-04-26 14:35:21 +0900
 ## 関連
 
 - 実装手順書: `apps/InsightLog/.claude/skills/reviewer-team/SKILL.md`
-- 実 Sub-Agent 定義: `apps/InsightLog/.claude/agents/cc-feature-review.md`, `committer.md`, `pr-creator.md`, `test-writer.md`, `e2e-planner.md`, `e2e-runner.md`, `implementer.md`
+- 実 Sub-Agent 定義: `apps/InsightLog/.claude/agents/committer.md`, `pr-creator.md`, `test-writer.md`, `e2e-planner.md`, `e2e-runner.md`, `implementer.md`
 - Walkthrough: `apps/InsightLog/demo/agent-teams-walkthrough.md`
 - 起動: `apps/InsightLog/demo/run.sh` + `apps/InsightLog/demo/pipeline.json`

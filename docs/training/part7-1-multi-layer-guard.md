@@ -54,7 +54,7 @@ ask（実行前に確認）:
 - Bash(rm *)          … ファイル削除コマンド
 - Bash(git push *)    … 通常のプッシュ
 
-制約: 既存の permissions.allow は絶対に触らない。
+制約: 既存の permissions.allow / deny / ask のエントリは絶対に削除しない（追記のみ）。
 JSON の構文を最後に jq で検証してください。
 ```
 

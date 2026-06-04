@@ -46,7 +46,7 @@ Claude Code の入力欄に以下を入力してください:
 | `SKILL.md` | スキルの入口。呼び出し時の手順・出力フォーマット・allowed-tools が書かれている |
 | `references/feeds.md` | RSS フィードの URL 一覧（情報源の設定） |
 | `references/article-item-template.md` | 記事 1 件を表示するテンプレート |
-| `references/sample-summary.md` | `/research-ai` の出力例 |
+| `examples/sample-summary.md` | `/research-ai` の出力例 |
 
 > **確認ポイント**: `scripts/` ディレクトリがないことに注目。実習でここに 1 ファイルを新設する。
 
