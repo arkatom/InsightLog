@@ -36,10 +36,9 @@ aliases:
 
 1. [InsightLog](https://insightlog.pages.dev/) を開く
 2. 右上の「📊 統計」アイコンをクリック
-3. 画面右上の「エクスポート ▾」をクリック
-4. 「KPI CSV でダウンロード」を選ぶ
+3. 「KPI形式でエクスポート」ボタンをクリック
 
-ダウンロードされたファイル（`insightlog-kpi-*.csv`）を確認してください。
+ダウンロードされたファイル（`logs.csv`）を確認してください。
 
 > **補足**: CSV ファイルには「タスク名 / AI使用有無 / 所要時間 / 使用ツール / 振り返りメモ」などが入っています。Excel や Numbers で開いて中身を確認してみてください
 
@@ -102,7 +101,7 @@ aliases:
 
 ## 完成の定義
 
-- [ ] Phase 1: InsightLog から KPI CSV をダウンロードした
+- [ ] Phase 1: InsightLog の「KPI形式でエクスポート」ボタンで `logs.csv` をダウンロードした
 - [ ] Phase 2: ダッシュボードで 4 指標を確認し、Markdown をコピーした
 - [ ] Phase 3: Claude Code に貼り付けて報告書が生成された
 - [ ] Phase 4: InsightLog に 8 件目の記録を追加した

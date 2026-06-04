@@ -8,7 +8,7 @@ description: >
   引数なしで全件一覧を表示。
   使用場面: (1) 受講者が手順書を手元で開きたいとき、
   (2) 講師が研修中に該当手順を案内するとき、
-  (3) 「/training compare」「/training 配色」等の呼び出し。
+  (3) 「/training compare」「/training 3層防御」等の呼び出し。
 ---
 
 # Training Material Opener
@@ -55,6 +55,7 @@ description: >
   simplify             タスク記録フォームを簡単にする
   required-annotation  必須フィールドの注釈表示
   observe-evolve       振り返りと改善サイクルを体験
+  research-ai          既存スキルに新機能を1つ追加する
   observe-hook         commit 後に振り返りを促す仕組みを作る
   multi-layer-guard    AI に「してはいけないこと」を設定する（3層防御）
   kpi-dashboard        InsightLog の記録を経営層向け報告書に変換する
@@ -103,6 +104,7 @@ VS Code が既に開いていれば、新しいタブで該当ファイルが表
 /training compare              → docs/training/part2-1-claudemd-compare.md を開く
 /training required-annotation  → docs/training/part3-1-required-annotation.md を開く
 /training observe-evolve       → docs/training/part4-1-observe-evolve.md を開く
+/training research-ai          → docs/training/part5-1-research-ai.md を開く
 /training observe-hook         → docs/training/part6-1-observe-hook.md を開く
 /training multi-layer-guard    → docs/training/part7-1-multi-layer-guard.md を開く
 /training kpi-dashboard        → docs/training/part8-1-kpi-dashboard.md を開く

@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import { secondsToMinutes } from '@/lib/time';
 
 export function TaskForm() {
-  const { addTask, tasks } = useTasks();
+  const { addTask } = useTasks();
   const { getTodaySessions } = useSessions();
   const { settings, updateSettings } = useSettings();
 
@@ -26,16 +26,6 @@ export function TaskForm() {
   const [customCategory, setCustomCategory] = useState('');
   const [showCustomCategoryInput, setShowCustomCategoryInput] = useState(false);
   const [notes, setNotes] = useState('');
-  const [hasPreFilled, setHasPreFilled] = useState(false);
-
-  // 前回タスクのAIツール・カテゴリを引き継ぎ（初回のみ）
-  useEffect(() => {
-    if (hasPreFilled || tasks.length === 0) return;
-    const lastTask = tasks[0];
-    if (lastTask.aiToolsUsed?.length > 0) setSelectedAITools(lastTask.aiToolsUsed);
-    if (lastTask.category?.length > 0) setSelectedCategories(lastTask.category);
-    setHasPreFilled(true);
-  }, [tasks, hasPreFilled]);
 
   // 全カテゴリ（固定 + カスタム）
   const allCategories = [...TASK_CATEGORIES, ...(settings.customCategories || [])];
@@ -199,7 +189,7 @@ export function TaskForm() {
         {/* タスク名 */}
         <div>
           <p className="text-sm text-primary-500 mb-2">
-            タスク名 <span className="text-red-500 text-xs font-normal">※必須</span>
+            タスク名
           </p>
           <Input
             type="text"
@@ -225,7 +215,7 @@ export function TaskForm() {
         <div>
           <div className="flex items-center gap-2 mb-2">
             <p className="text-sm text-primary-500">
-              AIツール利用状況 <span className="text-red-500 text-xs font-normal">※必須</span>
+              AIツール利用状況
             </p>
             {isAINotUsed && (
               <div className="group relative">
@@ -271,7 +261,7 @@ export function TaskForm() {
         {/* 所要時間 + AI未利用時の所要時間 + 手戻り回数（横並び） */}
         <div>
           <p className="text-sm text-primary-500 mb-2">
-            所要時間 <span className="text-red-500 text-xs font-normal">※必須</span>
+            所要時間
           </p>
         <div className="grid grid-cols-3 gap-3">
           {/* 所要時間 */}
@@ -321,7 +311,7 @@ export function TaskForm() {
         {/* カテゴリ */}
         <div>
           <p className="text-sm text-primary-500 mb-2">
-            カテゴリ <span className="text-red-500 text-xs font-normal">※必須</span>
+            カテゴリ
           </p>
           <div className="flex flex-wrap gap-2">
             {allCategories.map((cat) => (

@@ -89,5 +89,5 @@ Part 4「Claude Code を育てる PDCA」の終盤、slide 31「エコシステ�
 
 - このファイルを VS Code で開いて、各カテゴリのリンクを 1 つずつ紹介
 - 「研修が終わった後、どこを見続けるか」の地図として機能
-- 受講者には URL をコピーさせるのではなく、「リポジトリ内の `docs/training/ecosystem-resources.md` に集約してある」「`/training ecosystem` で開ける」と教える方が実用的
+- 受講者には URL をコピーさせるのではなく、「リポジトリ内の `docs/training/part4-ref-ecosystem-resources.md` に集約してある」「`/training ecosystem` で開ける」と教える方が実用的
 - Anthropic 公式 + Zenn / Qiita 日本語コミュニティ の **2 軸** をまず勧める。Discord / Reddit は中級者以上向け

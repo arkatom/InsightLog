@@ -24,6 +24,9 @@ Claude Code に「やってはいけないこと」を 3 つの層で設定す�
 > - `Permission`（パーミッション）= Claude Code が実行を「許可 / 拒否 / 要確認」するルール一覧。会社の「就業規則」に相当
 > - `Hook`（フック）= 特定のイベント発生時に自動実行されるスクリプト
 > - `PreToolUse`（プリ ツール ユーズ）= ツール実行の直前に発火するイベント
+> - `PostToolUse`（ポスト ツール ユーズ）= ツール実行の完了後に発火するイベント
+> - `JSONL`（ジェイソン エル）= 1 行が 1 JSON オブジェクトのログ形式。`grep` で検索・絞り込みができる
+> - `audit trail`（オーディット トレイル / 監査証跡）= 「いつ・誰が・何をしたか」を記録したログ。後から追跡可能にするための記録
 > - `settings.json`（セッティングス ジェイソン）= Claude Code の設定ファイル
 
 ## 前提
@@ -111,7 +114,44 @@ deny が返り、停止理由が表示されれば成功です。
 
 ---
 
-## Phase 3: InsightLog に記録する（5分）
+## Phase 3: 監査ログを取る Hook を作る（10分）
+
+**何をするか**: ツールを使うたびに「いつ・何をしたか」を自動でログに記録する仕組みを作る。Phase 2 がブロック（事前防御）なのに対し、こちらは事後検証。後から「何が起きたか」を追跡できる audit trail（監査証跡）を設ける。
+
+Claude Code の入力欄に以下をコピペして実行してください:
+
+```
+.claude/hooks/audit-logger.sh を新規作成してください。
+
+役割: ツール実行の完了後（PostToolUse）に、実行内容をログファイルに記録する。
+
+対象ツール: Bash / Write / Edit のみ（他のツールはスルー）
+
+処理内容:
+1. ~/.claude/audit/ ディレクトリを mkdir -p で用意
+2. stdin から JSON を読み取り tool_name / tool_input を取り出す
+3. ~/.claude/audit/$(date +%Y-%m-%d).jsonl に以下の 1 行 JSON を追記:
+   {timestamp, tool_name, cwd, tool_input}
+4. exit 0 で正常終了（ブロックはしない、純粋にログ記録）
+
+作成後に .claude/settings.json の hooks.PostToolUse に Hook として登録し、chmod +x まで実行してください。
+```
+
+> **用語メモ**
+> - `JSONL`（ジェイソン エル）= 1 行 1 JSON のログ形式。後から `grep` で絞り込み可能
+> - `PostToolUse` = ツール実行が完了した後に起動するイベント。Phase 2 の `PreToolUse`（実行前）と逆
+
+**動作確認** — Claude Code で以下を実行して監査ログを確認:
+
+```
+ls -la を実行して、その後 cat ~/.claude/audit/$(date +%Y-%m-%d).jsonl で監査ログを見せて
+```
+
+`~/.claude/audit/YYYY-MM-DD.jsonl` にログが追記されていれば成功です。
+
+---
+
+## Phase 4: InsightLog に記録する（5分）
 
 [InsightLog](https://insightlog.pages.dev/) に以下を記録してください:
 
@@ -123,7 +163,7 @@ deny が返り、停止理由が表示されれば成功です。
 | AI 未利用時の推定 | 自力で設定・スクリプトを書いたら何分かかるか |
 | 手戻り回数 | 指示のやり直し回数 |
 | カテゴリ | 設計 |
-| 振り返りメモ | **特に大事**: Phase 1・2 のうち、どちらの「ブレーキ」がより重要だと感じたか。理由も |
+| 振り返りメモ | **特に大事**: 3 層のうち、どの「ブレーキ」がより重要だと感じたか。理由も |
 
 ---
 
@@ -131,7 +171,8 @@ deny が返り、停止理由が表示されれば成功です。
 
 - [ ] Phase 1: permission の deny / ask が設定され、curl がブロックされることを確認した
 - [ ] Phase 2: secret-detector.sh が作られ、ダミーの API キーがブロックされることを確認した
-- [ ] Phase 3: InsightLog に振り返りメモまで書いて記録した
+- [ ] Phase 3: audit-logger.sh が作られ、`~/.claude/audit/YYYY-MM-DD.jsonl` に追記されることを確認した
+- [ ] Phase 4: InsightLog に振り返りメモまで書いて記録した
 
 ---
 
@@ -147,6 +188,11 @@ deny が返り、停止理由が表示されれば成功です。
   2. `cat .claude/settings.json | jq .hooks` で Hook が登録されているか確認
   3. 対象ツール（`matcher`）が `Bash|Write|Edit` になっているか確認
 
+- **audit-logger.sh のログが記録されない**:
+  1. `ls -la .claude/hooks/` で実行権限（`x`）がついているか確認
+  2. `cat .claude/settings.json | jq .hooks` で PostToolUse に登録されているか確認
+  3. `ls -la ~/.claude/audit/` でディレクトリが作成されているか確認
+
 - **JSON の構文エラーが出た**: `cat .claude/settings.json` の内容をコピペして Claude Code に「JSON のエラーを修正してください」と伝える
 
-- **時間内に終わらない**: Phase 1（permission 設定）まで完了すれば十分。Phase 2 は時間があれば
+- **時間内に終わらない**: Phase 1（permission 設定）まで完了すれば十分。Phase 2・3 は時間があれば
