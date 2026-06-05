@@ -52,7 +52,7 @@
 - Risk & rollback: ヒアリングステップにより応答が1ターン遅れる。不要と判断されれば省略するだけ
 - Risk-level: high
 - Rubric impact: 指示理解度 + 手戻り率
-- Status: proposed
+- Status: rejected -- ユーザー判断: 不要（InsightLog内observe/evolveスコープ外、削除許可）
 
 ## 2026-04-16 -- CLAUDE.md に新規コンポーネントの配置ルールを追記
 - Symptom: SDD 再実装で新規作成された RequiredBadge コンポーネントが src/RequiredBadge.tsx（ルート直下）に配置された。既存コンポーネントは全て src/components/ui/ にあるが、CLAUDE.md に新規ファイルの配置先が明記されていなかったため AI が推測で配置した
@@ -63,7 +63,7 @@
 - Risk & rollback: CLAUDE.md への1行追記のみ。リスクなし
 - Risk-level: high
 - Rubric impact: 後片付け
-- Status: proposed
+- Status: rejected -- ユーザー判断: 研修第2回実習箇所（CLAUDE.md配置ルール不足による不具合なし）
 
 ## 2026-04-16 -- 実装後に npm run dev を自動実行するフックを追加
 - Symptom: SDD 再実装後に Playwright MCP でスクショを撮ったが、dev サーバーを再起動し忘れていたため古い画面が撮影された。2回撮り直しが発生
@@ -74,4 +74,15 @@
 - Risk & rollback: フック追加のため、編集のたびに dev サーバーが再起動される。負荷が高い場合はフックを削除する
 - Risk-level: high
 - Rubric impact: 動作検証
-- Status: proposed
+- Status: rejected -- ユーザー判断: 研修第2回実習箇所（npm run dev フック不要）
+
+## 2026-06-05 -- 重大整合性タスクでのfan-out agents自律起動欠如
+- Symptom: 「研修最終チェック、死活問題、ここで見落としたものはもう直せません」という緊急度の高い整合性検証タスク受領後、fan-out subagentsの並列起動を自律的に提案せず、ユーザーが「サボってねぇか？fan out agents全部やるべき」と明示するまで待った (詳細: [reflection/20260605_insightlog_training_final_audit.md](../reflection/20260605_insightlog_training_final_audit.md))
+- Root cause: prompt
+- Fix: 「最後のチェック」「死活問題」「全部見て」等の重大性キーワードを含む検証タスク受領時、devil-team-orchestrator起動判断チェックリスト参照 + fan-out agents起動を自律的に提案する
+- Preventive check: タスク受領後に `grep -E "最後|死活|致命|全チェック|全部|絶対" <<< "${USER_MSG}"` でヒットしたら即座にfan-out提案を実施する
+- Expected impact: 重大性の高い整合性チェックタスクで自律的にマルチエージェント検証が起動され、ユーザーが都度明示する必要がなくなる
+- Risk & rollback: prompt認識の変更のみ。過剰提案の場合はキーワードを絞ればよい
+- Risk-level: low
+- Rubric impact: 指示理解度
+- Status: applied

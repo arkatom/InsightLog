@@ -20,3 +20,10 @@
 - Why: Claude Code の設定値を推測で提案して効かなかった、APIキーエラーで調査せず推測した等、裏取り不足による手戻りが複数回発生
 - Expected impact: 推測ベースの提案がゼロになり、ユーザーの信頼が維持される
 - Rollback: soul.md から該当行を削除するだけ
+
+## 2026-06-05 -- 自動適用: 重大整合性タスクでのfan-out agents自律起動欠如
+- 対象: `.claude/skills/observe/references/checklist.md` — 末尾に「重大タスク受領時のfan-out agents自律提案チェック」セクション追記
+- 内容: 「最後」「死活」「致命」等のキーワードをgrepして自律的にfan-out提案を行うチェック項目を追加
+- Expected impact: 重大性の高い整合性チェックタスクで自律的にマルチエージェント検証が起動される
+- Why: reflection/20260605_insightlog_training_final_audit.md — 「サボってねぇか？fan out agents全部やるべき」指摘から
+- Rollback: checklist.mdの追加セクションを削除するだけ
