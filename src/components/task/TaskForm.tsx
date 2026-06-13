@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Clock, RotateCcw, Link as LinkIcon, Info, X } from 'lucide-react';
+import { Clock, RotateCcw, Link as LinkIcon, Info, X, FileText, GitBranch } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -8,24 +8,57 @@ import { useSessions } from '@/hooks/useSessions';
 import { useSettings } from '@/hooks/useSettings';
 import { TASK_CATEGORIES } from '@/constants/categories';
 import { AI_TOOLS, AI_NOT_USED } from '@/constants/aiTools';
+import type { DraftTask } from '@/types/import';
+import type { Task } from '@/types/task';
 import { toast } from 'sonner';
 import { secondsToMinutes } from '@/lib/time';
 
-export function TaskForm() {
-  const { addTask } = useTasks();
+interface TaskFormProps {
+  /** インポート由来の初期値。指定時は draft mode（新規追加・AI 関連必須） */
+  initialDraft?: DraftTask;
+  /** 既存タスクの初期値。指定時は edit mode（更新） */
+  initialTask?: Task;
+  /** 保存成功時のコールバック（追加 or 更新された Task の id を渡す） */
+  onSaved?: (taskId: string) => void;
+  /** 送信ボタンのラベル。未指定なら mode に応じたデフォルト */
+  submitLabel?: string;
+}
+
+export function TaskForm({ initialDraft, initialTask, onSaved, submitLabel }: TaskFormProps = {}) {
+  const { addTask, updateTask } = useTasks();
   const { getTodaySessions } = useSessions();
   const { settings, updateSettings } = useSettings();
 
-  const [name, setName] = useState('');
-  const [taskUrl, setTaskUrl] = useState('');
-  const [selectedAITools, setSelectedAITools] = useState<string[]>([]);
-  const [duration, setDuration] = useState('');
-  const [timeMinutesNoAi, setTimeMinutesNoAi] = useState('');
-  const [reworkCount, setReworkCount] = useState('0');
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const isDraftMode = initialDraft !== undefined;
+  const isEditMode = initialTask !== undefined;
+
+  // 初期値は edit mode > draft mode > 空 の優先順
+  const [name, setName] = useState(initialTask?.name ?? initialDraft?.name ?? '');
+  const [taskUrl, setTaskUrl] = useState(initialTask?.taskUrl ?? initialDraft?.taskUrl ?? '');
+  const [selectedAITools, setSelectedAITools] = useState<string[]>(initialTask?.aiToolsUsed ?? []);
+  const [duration, setDuration] = useState(
+    initialTask?.duration !== undefined
+      ? String(initialTask.duration)
+      : initialDraft?.duration !== undefined
+      ? String(initialDraft.duration)
+      : ''
+  );
+  const [timeMinutesNoAi, setTimeMinutesNoAi] = useState(
+    initialTask?.timeMinutesNoAi !== undefined ? String(initialTask.timeMinutesNoAi) : ''
+  );
+  const [reworkCount, setReworkCount] = useState(
+    initialTask?.reworkCount !== undefined
+      ? String(initialTask.reworkCount)
+      : initialDraft?.reworkCount !== undefined
+      ? String(initialDraft.reworkCount)
+      : '0'
+  );
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(
+    initialTask?.category ?? initialDraft?.category ?? []
+  );
   const [customCategory, setCustomCategory] = useState('');
   const [showCustomCategoryInput, setShowCustomCategoryInput] = useState(false);
-  const [notes, setNotes] = useState('');
+  const [notes, setNotes] = useState(initialTask?.notes ?? initialDraft?.notes ?? '');
 
   // 全カテゴリ（固定 + カスタム）
   const allCategories = [...TASK_CATEGORIES, ...(settings.customCategories || [])];
@@ -33,8 +66,10 @@ export function TaskForm() {
   // 「AI未使用」が選択されているか
   const isAINotUsed = selectedAITools.includes(AI_NOT_USED);
 
-  // 作業時間を自動計算
+  // 作業時間を自動計算（draft / edit mode では入力値を尊重するのでスキップ）
   useEffect(() => {
+    if (isDraftMode || isEditMode) return;
+
     const fetchTodayDuration = async () => {
       const sessions = await getTodaySessions();
       const workSessions = sessions.filter(
@@ -50,7 +85,7 @@ export function TaskForm() {
 
     fetchTodayDuration();
   // eslint-disable-next-line react-hooks/exhaustive-deps -- durationの変更で再取得は不要
-  }, [getTodaySessions]);
+  }, [getTodaySessions, isDraftMode, isEditMode]);
 
   const handleCategoryToggle = (category: string) => {
     setSelectedCategories((prev) =>
@@ -151,8 +186,14 @@ export function TaskForm() {
       return;
     }
 
+    // draft mode では「AI なし所要時間」も必須にする（インポート目的そのものなので）
+    if (isDraftMode && (!timeMinutesNoAi || Number(timeMinutesNoAi) <= 0)) {
+      toast.error('AI未利用時の所要時間を入力してください');
+      return;
+    }
+
     try {
-      await addTask({
+      const payload = {
         name: name.trim(),
         taskUrl: taskUrl.trim() || undefined,
         aiToolsUsed: selectedAITools,
@@ -161,29 +202,73 @@ export function TaskForm() {
         reworkCount: Number(reworkCount),
         category: selectedCategories,
         notes: notes.trim(),
-      });
+      };
 
+      if (isEditMode && initialTask) {
+        await updateTask(initialTask.id, payload);
+        toast.success('タスクを更新しました');
+        onSaved?.(initialTask.id);
+        return;
+      }
+
+      const taskId = await addTask(payload);
       toast.success('タスクを記録しました');
 
-      // フォームをリセット
-      setName('');
-      setTaskUrl('');
-      setSelectedAITools([]);
-      setDuration('');
-      setTimeMinutesNoAi('');
-      setReworkCount('0');
-      setSelectedCategories([]);
-      setShowCustomCategoryInput(false);
-      setNotes('');
+      if (isDraftMode) {
+        // 下書きフローでは親 (ImportModal) が次の状態に遷移させる
+        onSaved?.(taskId);
+      } else {
+        // 通常フローはフォームリセット
+        setName('');
+        setTaskUrl('');
+        setSelectedAITools([]);
+        setDuration('');
+        setTimeMinutesNoAi('');
+        setReworkCount('0');
+        setSelectedCategories([]);
+        setShowCustomCategoryInput(false);
+        setNotes('');
+        onSaved?.(taskId);
+      }
     } catch (error) {
-      toast.error('タスクの記録に失敗しました');
+      toast.error(isEditMode ? 'タスクの更新に失敗しました' : 'タスクの記録に失敗しました');
       console.error(error);
     }
   };
 
   return (
     <Card>
-      <h2 className="font-bold text-primary-800 mb-4">タスク記録</h2>
+      <h2 className="font-bold text-primary-800 mb-4">
+        {isEditMode
+          ? 'タスクを編集'
+          : isDraftMode
+          ? 'autolog からのインポート（下書き）'
+          : 'タスク記録'}
+      </h2>
+
+      {/* draft mode: autolog メタ情報のサマリー */}
+      {isDraftMode && initialDraft?.meta && (
+        <div className="mb-4 p-3 bg-accent-50 rounded-lg text-xs text-primary-700 space-y-1">
+          <div className="flex items-center gap-2">
+            <GitBranch size={14} className="text-primary-500" />
+            <span className="font-mono">
+              {initialDraft.meta.repoName ?? '(unknown)'} / {initialDraft.meta.branch ?? '(detached)'}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <FileText size={14} className="text-primary-500" />
+            <span>
+              {initialDraft.meta.commitCount} コミット ・ セッション {initialDraft.meta.sessionIds.length} 件
+              {initialDraft.meta.costUsd !== undefined && (
+                <span className="ml-2">・ Claude コスト ${initialDraft.meta.costUsd.toFixed(3)}</span>
+              )}
+            </span>
+          </div>
+          <div className="text-primary-500 text-[10px]">
+            {initialDraft.meta.firstTs} 〜 {initialDraft.meta.lastTs}
+          </div>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* タスク名 */}
@@ -377,7 +462,12 @@ export function TaskForm() {
 
         {/* 保存ボタン */}
         <Button type="submit" className="w-full" size="lg">
-          タスクを記録
+          {submitLabel ??
+            (isEditMode
+              ? '変更を保存'
+              : isDraftMode
+              ? 'この下書きを確定'
+              : 'タスクを記録')}
         </Button>
       </form>
     </Card>
