@@ -49,6 +49,9 @@ demo/plan_output.md
 # Claude Code ワークツリー（自動生成）
 .claude/worktrees/
 
+# Claude Code hooks 自動ログ（autolog 出力）
+.claude/tmp/
+
 # プロビジョニング（講師専用、受講生には不要）
 .devcontainer/provisioning/
 dist_zips/

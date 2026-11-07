@@ -35,10 +35,15 @@ export function useTasks() {
   };
 
   /**
-   * タスクを削除
+   * タスクを削除（autolog の取り込み記録もカスケード削除する）
    */
   const deleteTask = async (id: string): Promise<void> => {
-    await db.tasks.delete(id);
+    await db.transaction('rw', db.tasks, db.importedDrafts, async () => {
+      await db.tasks.delete(id);
+      // 取り込み由来のタスクなら importedDrafts 側のエントリも消す
+      // → 同じ events.jsonl を再インポートする時にまた候補に出るようになる
+      await db.importedDrafts.where('taskId').equals(id).delete();
+    });
   };
 
   /**

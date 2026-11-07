@@ -1,10 +1,11 @@
-import { List, BarChart3, Settings } from 'lucide-react';
+import { List, BarChart3, Settings, Upload } from 'lucide-react';
 import type { ComponentType } from 'react';
 
 interface HeaderProps {
   onTaskListClick?: () => void;
   onStatsClick?: () => void;
   onSettingsClick?: () => void;
+  onImportClick?: () => void;
 }
 
 interface IconButtonProps {
@@ -34,11 +35,17 @@ function IconButton({ label, icon: Icon, onClick }: IconButtonProps) {
   );
 }
 
-export function Header({ onTaskListClick, onStatsClick, onSettingsClick }: HeaderProps) {
+export function Header({
+  onTaskListClick,
+  onStatsClick,
+  onSettingsClick,
+  onImportClick,
+}: HeaderProps) {
   return (
     <div className="flex justify-between items-center mb-4">
       <h1 className="text-xl font-bold text-primary-800">InsightLog</h1>
       <div className="flex gap-2">
+        <IconButton label="autolog インポート" icon={Upload} onClick={onImportClick} />
         <IconButton label="タスク一覧" icon={List} onClick={onTaskListClick} />
         <IconButton label="統計" icon={BarChart3} onClick={onStatsClick} />
         <IconButton label="設定" icon={Settings} onClick={onSettingsClick} />

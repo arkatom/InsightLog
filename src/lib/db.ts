@@ -3,10 +3,31 @@ import type { Task } from '@/types/task';
 import type { PomodoroSession } from '@/types/session';
 import type { AppSettings } from '@/types/settings';
 
+/** autolog インポートで取り込んだ下書きの追跡レコード（重複取り込み防止用） */
+export interface ImportedDraft {
+  draftKey: string;       // DraftTask.draftKey と同じ
+  taskId: string;         // 紐づく Task の id
+  importedAt: Date;       // 取り込み実施時刻
+  name: string;           // 取り込み時の name（後から探しやすいよう保存）
+  repo?: string;
+  branch?: string;
+  jstDate?: string;
+}
+
+/** autolog インポートのソース記憶（前回の events.jsonl を一発で開けるよう FileSystemFileHandle を保存） */
+export interface AutologSource {
+  id: 'default';                            // シングルトン
+  fileHandle?: FileSystemFileHandle;        // File System Access API 対応ブラウザのみ。IDB に構造化複製で保存可
+  fileName: string;                         // フォールバック表示用
+  lastReadAt: Date;
+}
+
 export class InsightLogDatabase extends Dexie {
   tasks!: Table<Task, string>;
   sessions!: Table<PomodoroSession, string>;
   settings!: Table<AppSettings, string>;
+  importedDrafts!: Table<ImportedDraft, string>;
+  autologSource!: Table<AutologSource, string>;
 
   constructor() {
     super('InsightLogDB');
@@ -66,6 +87,24 @@ export class InsightLogDatabase extends Dexie {
           await trans.table('tasks').put(rest);
         }
       }
+    });
+
+    // バージョン6: autolog インポート用 importedDrafts テーブル追加
+    // - 取り込み済みの draftKey を保存し、再インポート時の重複を防ぐ
+    this.version(6).stores({
+      tasks: 'id, name, createdAt, completedAt, *category, *aiToolsUsed',
+      sessions: 'id, startedAt, completedAt, type',
+      settings: 'id, memberId',
+      importedDrafts: 'draftKey, taskId, importedAt, jstDate, branch',
+    });
+
+    // バージョン7: autolog ファイル元の記憶（File System Access API の handle 保存）
+    this.version(7).stores({
+      tasks: 'id, name, createdAt, completedAt, *category, *aiToolsUsed',
+      sessions: 'id, startedAt, completedAt, type',
+      settings: 'id, memberId',
+      importedDrafts: 'draftKey, taskId, importedAt, jstDate, branch',
+      autologSource: 'id',
     });
   }
 }

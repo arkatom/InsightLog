@@ -1,4 +1,4 @@
-import { Sparkles, ExternalLink, Trash2, TrendingDown } from 'lucide-react';
+import { Sparkles, ExternalLink, Trash2, TrendingDown, Pencil } from 'lucide-react';
 import type { Task } from '@/types/task';
 import { Badge } from '@/components/ui/Badge';
 import { formatMinutes } from '@/lib/time';
@@ -7,6 +7,7 @@ import { isAiUsed } from '@/lib/task-helpers';
 interface TaskItemProps {
   task: Task;
   onDelete?: (id: string) => void;
+  onEdit?: (task: Task) => void;
 }
 
 function calcReductionPercent(task: Task): number | null {
@@ -14,7 +15,7 @@ function calcReductionPercent(task: Task): number | null {
   return Math.round((1 - task.duration / task.timeMinutesNoAi) * 100);
 }
 
-export function TaskItem({ task, onDelete }: TaskItemProps) {
+export function TaskItem({ task, onDelete, onEdit }: TaskItemProps) {
   const reduction = calcReductionPercent(task);
 
   return (
@@ -46,6 +47,15 @@ export function TaskItem({ task, onDelete }: TaskItemProps) {
               <TrendingDown size={12} />
               {reduction > 0 ? `-${reduction}%` : `+${Math.abs(reduction)}%`}
             </span>
+          )}
+          {onEdit && (
+            <button
+              onClick={() => onEdit(task)}
+              className="p-1 text-primary-400 hover:text-accent-600 hover:bg-accent-50 rounded transition-colors"
+              title="編集"
+            >
+              <Pencil size={14} />
+            </button>
           )}
           {onDelete && (
             <button
